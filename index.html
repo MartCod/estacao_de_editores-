@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estação de Editores</title>
+<style>
+  :root{
+    --bg: #0e1013;
+    --bg-vignette: radial-gradient(ellipse at top, #171a20 0%, #0e1013 60%);
+    --panel: #181b22;
+    --panel-2: #1e222b;
+    --panel-3: #23272f;
+    --line: #2a2f3a;
+    --line-soft: #23272f;
+    --text: #eef0f4;
+    --text-dim: #9aa1ae;
+    --text-faint: #5f6675;
+    --amber: #f2a93b;
+    --amber-dim: #4a3b1e;
+    --red: #e4572e;
+    --red-dim: #45241a;
+    --teal: #4cc9a6;
+    --teal-dim: #1c3a30;
+    --blue: #4d8dff;
+    --blue-dim: #1c2b47;
+    --gray: #7b8390;
+    --gray-dim: #2a2e37;
+    --green: #35c46a;
+    --green-dim: #163a25;
+    --radius: 14px;
+    --font-display: 'Arial Narrow', 'Helvetica Neue Condensed', Impact, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+
+  body.theme-light{
+    --bg: #f3f4f7;
+    --bg-vignette: radial-gradient(ellipse at top, #ffffff 0%, #edeff3 60%);
+    --panel: #ffffff;
+    --panel-2: #f4f5f7;
+    --panel-3: #eceef2;
+    --line: #dadde3;
+    --line-soft: #e6e8ec;
+    --text: #1b1e24;
+    --text-dim: #565d6b;
+    --text-faint: #8e95a3;
+    --amber-dim: #fcecd2;
+    --red-dim: #fbe1d9;
+    --teal-dim: #d9f5ec;
+    --blue-dim: #dde8ff;
+    --gray-dim: #e8eaee;
+    --green-dim: #dcf7e6;
+  }
+  body.theme-light select.urg-select[data-v="baixa"]{ color:#0f6b52; }
+  body.theme-light select.urg-select[data-v="media"]{ color:#8a5c05; }
+  body.theme-light select.urg-select[data-v="alta"]{ color:#a83214; }
+  body.theme-light select.status-select[data-v="pendente"]{ color:#4b5563; }
+  body.theme-light select.status-select[data-v="fazendo"]{ color:#1d4ed8; }
+  body.theme-light select.status-select[data-v="concluido"]{ color:#15803d; }
+  body.theme-light select.revstatus-select[data-v="andamento"]{ color:#1d4ed8; }
+  body.theme-light select.revstatus-select[data-v="revisado"]{ color:#15803d; }
+  body.theme-light select.revstatus-select[data-v="erro"]{ color:#a83214; }
+  body.theme-light .path-field input{ color:#0f8a6c; }
+  body.theme-light .movie-header{ background: repeating-linear-gradient(-45deg, #eef0f4 0 22px, #e2e5eb 22px 44px); }
+  body.theme-light .progress-seg.pendente{ background: repeating-linear-gradient(135deg, #d8dce2 0 6px, #cbcfd7 6px 12px); }
+  body.theme-light .movie-chip.active{ color:#1a1305; }
+  body.theme-light .dept-tab.active{ box-shadow: 0 1px 0 rgba(0,0,0,.02); }
+
+  /* ---------- IDENTIDADE DE COR POR DEPARTAMENTO ----------
+     O acento "amarelo" (--amber) do tema passa a acompanhar a cor
+     do departamento ativo: Vocal = verde, Música = vermelho, Efeitos = azul. */
+  body.dept-vocal{ --amber: var(--green); --amber-dim: var(--green-dim); }
+  body.dept-musica{ --amber: var(--red); --amber-dim: var(--red-dim); }
+  body.dept-efeitos{ --amber: var(--blue); --amber-dim: var(--blue-dim); }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: var(--bg-vignette);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 28px 20px 80px;
+    transition: background .2s ease, color .2s ease;
+  }
+  .wrap{ max-width: 1400px; margin: 0 auto; }
+
+  /* ---------- LAYOUT GERAL: CONTEÚDO + BARRA LATERAL DE ABAS ---------- */
+  .station-layout{ display:flex; align-items:flex-start; gap:26px; }
+  .station-main{ flex: 1 1 auto; min-width: 0; }
+  .station-side{ width: 240px; flex-shrink:0; position: sticky; top: 20px; }
+
+  /* ---------- HEADER / SLATE ---------- */
+  .masthead{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .slate-icon{
+    width: 46px; height: 46px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 32px; line-height:1;
+  }
+  .masthead h1{
+    font-family: var(--font-display);
+    font-weight:800;
+    font-size: 25px;
+    letter-spacing: 1.2px;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+  .masthead p{ color: var(--text-dim); font-size: 13px; margin-top: 4px;}
+  .masthead .titles{ flex:1 1 260px; }
+  .io-actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .io-btn{
+    font-size:12px; font-weight:600; color: var(--text-dim); background: var(--panel);
+    border:1px solid var(--line); padding: 9px 14px; border-radius:8px; cursor:pointer;
+  }
+  .io-btn:hover{ color: var(--text); border-color: var(--teal); }
+  .io-btn.primary{ color: var(--amber); border-color: color-mix(in srgb, var(--amber) 35%, transparent); background: var(--amber-dim); }
+  .io-btn.primary:hover{ background: color-mix(in srgb, var(--amber) 22%, transparent); }
+
+  .theme-toggle{ display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .theme-btn{
+    padding:9px 14px; font-size:12px; font-weight:700; background:var(--panel);
+    color:var(--text-dim); border:none; cursor:pointer;
+  }
+  .theme-btn + .theme-btn{ border-left:1px solid var(--line); }
+  .theme-btn.active{ background: var(--amber); color:#1a1305; }
+
+  /* ---------- DEPARTMENT TABS (barra lateral direita, cada aba com cor de identidade) ---------- */
+  .dept-tabs{ display:flex; flex-direction:column; gap:12px; }
+  .dept-tab{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding: 16px 18px; border-radius: 12px; background: var(--panel);
+    border: 1.5px solid var(--line); border-left-width: 6px;
+    cursor:pointer; transition: all .15s ease;
+  }
+  .dept-tab[data-dept="vocal"]{ --dept-color: var(--green); --dept-color-dim: var(--green-dim); }
+  .dept-tab[data-dept="efeitos"]{ --dept-color: var(--blue); --dept-color-dim: var(--blue-dim); }
+  .dept-tab[data-dept="musica"]{ --dept-color: var(--red); --dept-color-dim: var(--red-dim); }
+  .dept-tab{ border-color: var(--dept-color); }
+  .dept-tab:hover{ background: var(--dept-color-dim); }
+  .dept-tab.active{ background: var(--dept-color-dim); box-shadow: 0 0 0 1px var(--dept-color) inset; }
+  .dept-tab-left{ display:flex; flex-direction:column; gap:4px; }
+  .dept-name{
+    font-family: var(--font-display); font-weight:800; text-transform:uppercase;
+    letter-spacing:.7px; font-size: 16px; color: var(--dept-color);
+  }
+  .dept-status-label{ font-size: 11px; font-weight:600; color: var(--text-dim); }
+  .dept-status-dot{
+    width:12px; height:12px; border-radius:50%; flex-shrink:0; border:2px solid transparent;
+  }
+  .dept-status-dot.pendente{ background: var(--gray); }
+  .dept-status-dot.fazendo{ background: var(--dept-color); box-shadow:0 0 8px color-mix(in srgb, var(--dept-color) 55%, transparent); }
+  .dept-status-dot.concluido{ background: var(--green); box-shadow:0 0 8px rgba(53,196,106,.55); }
+  .dept-status-dot.vazio{ background: transparent; border-color: var(--line); }
+
+  @media (max-width: 980px){
+    .station-layout{ flex-direction: column; }
+    .station-side{ width:100%; position:static; }
+    .dept-tabs{ flex-direction:row; flex-wrap:wrap; }
+    .dept-tab{ flex:1 1 180px; }
+  }
+
+  /* ---------- MOVIE TABS ---------- */
+  .movie-tabs{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    margin-bottom: 22px;
+  }
+  .movie-chip{
+    font-family: var(--font-body); font-weight:600; font-size: 13.5px;
+    padding: 9px 16px; border-radius: 999px;
+    background: var(--panel); border:1px solid var(--line);
+    color: var(--text-dim); cursor:pointer;
+    transition: all .15s ease;
+    display:flex; align-items:center; gap:8px;
+  }
+  .movie-chip:hover{ border-color: var(--amber); color: var(--text); }
+  .movie-chip.active{ background: var(--amber); color:#1a1305; border-color: var(--amber); }
+  .movie-chip .count{
+    font-size: 11px; opacity:.8; background: rgba(0,0,0,.18);
+    padding: 1px 7px; border-radius:999px;
+  }
+  .movie-chip.active .count{ background: rgba(0,0,0,.22); }
+  .add-movie-btn{
+    font-family: var(--font-body); font-weight:700; font-size: 13.5px;
+    padding: 9px 16px; border-radius: 999px;
+    background: transparent; border:1.5px dashed var(--line);
+    color: var(--text-dim); cursor:pointer;
+  }
+  .add-movie-btn:hover{ border-color: var(--teal); color: var(--teal); }
+
+  /* ---------- EMPTY STATE ---------- */
+  .empty{
+    text-align:center; padding: 70px 20px; color: var(--text-dim);
+    background: var(--panel); border-radius: var(--radius); border:1px solid var(--line-soft);
+  }
+  .empty h2{ font-family: var(--font-display); font-weight:800; text-transform:uppercase; font-size: 22px; color: var(--text); margin-bottom:8px; letter-spacing:.6px;}
+  .empty button{
+    margin-top: 18px; font-family: var(--font-body); font-weight:700; font-size:14px;
+    background: var(--amber); color:#1a1305; border:none; padding: 11px 22px; border-radius:9px; cursor:pointer;
+  }
+
+  /* ---------- MOVIE PANEL ---------- */
+  .movie-panel{
+    background: var(--panel);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    overflow: visible;
+    margin-bottom: 24px;
+  }
+  .movie-header{
+    background: repeating-linear-gradient(-45deg, #21252d 0 22px, #1a1d24 22px 44px);
+    padding: 26px;
+    border-bottom: 1px solid var(--line);
+    border-radius: var(--radius) var(--radius) 0 0;
+    display:flex; flex-wrap:wrap; gap:22px; align-items:flex-start; justify-content:space-between;
+  }
+  .movie-identity{ display:flex; gap:22px; align-items:center; flex:1 1 420px; }
+  .movie-title-field{ flex: 1 1 260px; align-self:center; }
+
+  /* ---------- POSTER UPLOAD (formato vertical, estilo poster de celular) ---------- */
+  .poster-upload{
+    width: 168px; aspect-ratio: 9 / 16; border-radius: 16px; flex-shrink:0;
+    border: 2px dashed var(--line); background: var(--panel-2);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; position:relative; overflow:hidden;
+    transition: border-color .15s ease, background .15s ease;
+    box-shadow: 0 10px 26px rgba(0,0,0,.35);
+  }
+  .poster-upload:hover{ border-color: var(--teal); background: var(--panel-3); }
+  .poster-upload img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .poster-plus{ font-size:54px; font-weight:700; color: var(--text-faint); line-height:1; transition: color .15s ease; }
+  .poster-upload:hover .poster-plus{ color: var(--teal); }
+  .poster-hint{ font-size:9.5px; color: var(--text-faint); text-transform:uppercase; letter-spacing:.5px; margin-top:4px; text-align:center; padding:0 4px; }
+  .poster-remove{
+    position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:50%;
+    background: rgba(0,0,0,.6); color:#fff; border:none; font-size:15px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; line-height:1;
+  }
+  .poster-remove:hover{ background: var(--red); }
+  .field-label{
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--text-faint); font-weight:700; margin-bottom:8px; display:block;
+  }
+  .movie-title-field input{
+    font-family: var(--font-display); font-weight:800; text-transform:uppercase;
+    font-size: 34px; letter-spacing:.6px;
+    background: transparent; border:none; border-bottom: 2px solid transparent;
+    color: var(--text); width:100%; padding: 4px 0;
+  }
+  .movie-title-field input:focus{ outline:none; border-bottom-color: var(--amber); }
+  .movie-title-field input::placeholder{ color: var(--text-faint); }
+
+  .del-movie-btn{
+    font-size:12px; font-weight:600; color: var(--red); background: var(--red-dim);
+    border: 1px solid rgba(228,87,46,.35); padding: 8px 12px; border-radius:8px; cursor:pointer;
+    white-space:nowrap; align-self: flex-start;
+  }
+  .del-movie-btn:hover{ background: rgba(228,87,46,.25); }
+
+  .path-row{
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--line-soft);
+    display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;
+  }
+  .path-field{ flex: 1 1 380px; }
+  .path-field .input-shell{
+    display:flex; align-items:center; gap:8px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 9px;
+    padding: 10px 12px;
+  }
+  .path-field input{
+    background:transparent; border:none; color: var(--teal); font-family: var(--font-mono);
+    font-size: 13px; width:100%;
+  }
+  .path-field input::placeholder{ color: var(--text-faint); font-family: var(--font-body); }
+  .path-field input:focus{ outline:none; }
+  .copy-btn{
+    background: var(--panel-2); border:1px solid var(--line); color: var(--text-dim);
+    font-size:12px; font-weight:600; padding: 8px 12px; border-radius:7px; cursor:pointer; white-space:nowrap;
+  }
+  .copy-btn:hover{ color: var(--text); border-color: var(--teal); }
+
+  /* ---------- PROGRESS BAR ---------- */
+  .progress-block{ padding: 16px 22px 6px; border-bottom: 1px solid var(--line-soft); }
+  .progress-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:9px; }
+  .progress-top .field-label{ margin-bottom:0; }
+  .progress-total{ font-family: var(--font-mono); font-size:12px; color: var(--text-dim); }
+  .progress-track{
+    height: 16px; border-radius: 999px; overflow:hidden; display:flex;
+    background: var(--gray-dim); border: 1px solid var(--line);
+  }
+  .progress-seg{ height:100%; transition: width .25s ease; }
+  .progress-seg.pendente{ background: repeating-linear-gradient(135deg, #3a3f4a 0 6px, #333842 6px 12px); }
+  .progress-seg.fazendo{ background: linear-gradient(180deg,#ffc35c,#f2a93b); }
+  .progress-seg.concluido{ background: linear-gradient(180deg,#4fe08b,#2fb968); }
+  .progress-legend{ display:flex; gap:16px; margin-top:9px; flex-wrap:wrap; }
+  .progress-legend .leg{ font-size:11.5px; color: var(--text-dim); display:flex; align-items:center; gap:6px; font-weight:600;}
+  .progress-legend .sw{ width:9px; height:9px; border-radius:3px; }
+  .progress-legend .sw.pendente{ background:#3a3f4a; }
+  .progress-legend .sw.fazendo{ background: var(--amber); }
+  .progress-legend .sw.concluido{ background: var(--green); }
+
+  /* ---------- EDITOR GROUPS ---------- */
+  .editors-wrap{ padding: 4px 0 4px; }
+  .editor-group{ border-top: 1px solid var(--line-soft); }
+  .editor-group:first-child{ border-top:none; }
+
+  .editor-group-header{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding: 14px 22px 10px;
+    background: var(--panel-3);
+    position: relative;
+  }
+  .editor-name-input{
+    font-family: var(--font-body); font-weight:800; font-size: 15.5px;
+    background: transparent; border:none; border-bottom: 2px solid transparent;
+    color: var(--text); padding: 3px 0; min-width: 140px;
+  }
+  .editor-name-input:focus{ outline:none; border-bottom-color: var(--amber); }
+  .lang-badge{
+    font-family: var(--font-mono); font-size:11px; font-weight:600; color: var(--text-dim);
+    background: var(--bg); border:1px solid var(--line-soft); padding:4px 9px; border-radius:999px;
+  }
+  .spacer{ flex:1; }
+  .add-lang-inline-btn{
+    font-size:12px; font-weight:700; color: var(--teal); background: var(--teal-dim);
+    border:1px solid rgba(76,201,166,.35); padding: 7px 13px; border-radius:8px; cursor:pointer;
+    position:relative;
+  }
+  .add-lang-inline-btn:hover{ background: rgba(76,201,166,.22); }
+  .rm-editor-btn{
+    font-size:12px; font-weight:600; color: var(--red); background: var(--red-dim);
+    border: 1px solid rgba(228,87,46,.3); padding: 7px 11px; border-radius:8px; cursor:pointer;
+  }
+  .rm-editor-btn:hover{ background: rgba(228,87,46,.22); }
+
+  /* ---------- LANGUAGE ROW TABLE ---------- */
+  .table-scroll{ overflow-x:auto; overflow-y: visible; }
+  .grid{ display:grid; min-width: 900px; }
+  .grid-row{
+    display:grid;
+    grid-template-columns: 26px 1.6fr 0.5fr 1fr 1fr 1fr 1fr 34px;
+    align-items:center;
+    gap: 10px;
+    padding: 0 22px;
+  }
+  .grid.has-revisor{ min-width: 1180px; }
+  .grid.has-revisor .grid-row{
+    grid-template-columns: 26px 1.3fr 0.5fr 1fr 1fr 1fr 1.2fr 1.2fr 1fr 34px;
+  }
+  .cell input.revisor-input{
+    width:100%; background: var(--bg); border:1px solid var(--line);
+    color: var(--text); font-size: 12.5px; padding: 8px 9px; border-radius: 7px;
+    font-family: var(--font-body); font-weight:600;
+  }
+  .cell input.revisor-input::placeholder{ color: var(--text-faint); font-weight:400; }
+  .cell input.revisor-input:focus{ outline:none; border-color: var(--teal); }
+  .grid-head{ padding: 10px 0 8px; }
+  .grid-head span{
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-faint); font-weight:700;
+  }
+  .grid-body-row{
+    padding-top: 10px; padding-bottom: 10px;
+    border-top: 1px solid var(--line-soft);
+    position: relative;
+  }
+  .urg-bar{ width:5px; height: 26px; border-radius:3px; justify-self:center; }
+  .urg-bar.baixa{ background: var(--teal); }
+  .urg-bar.media{ background: var(--amber); }
+  .urg-bar.alta{ background: var(--red); box-shadow: 0 0 8px rgba(228,87,46,.5); }
+
+  .lang-name{
+    font-size: 13.5px; font-weight:600; color: var(--text);
+    background: var(--bg); border:1px solid var(--line-soft); border-radius:7px;
+    padding: 8px 10px;
+  }
+  .lang-index{
+    text-align:center; font-family: var(--font-mono); font-weight:600; font-size: 12.5px;
+    color: var(--text-faint);
+  }
+
+  .cell input[type=date]{
+    width:100%; background: var(--bg); border:1px solid var(--line);
+    color: var(--text-dim); font-size: 12.5px; padding: 8px 9px; border-radius: 7px;
+    font-family: var(--font-body);
+  }
+  .cell input:focus{ outline:none; border-color: var(--teal); color:var(--text); }
+
+  select.urg-select, select.status-select, select.revstatus-select{
+    width:100%; border-radius:7px; padding: 8px 9px; font-size:12.5px; font-weight:700;
+    border:1px solid transparent; cursor:pointer; font-family: var(--font-body);
+    -webkit-appearance:none; appearance:none;
+    background-repeat: no-repeat; background-position: right 9px center; background-size:10px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  }
+  select.urg-select option, select.status-select option, select.revstatus-select option{ background: var(--panel-2); color: var(--text); }
+  select.urg-select[data-v="baixa"]{ background-color: var(--teal-dim); color:#9fe9d3; }
+  select.urg-select[data-v="media"]{ background-color: var(--amber-dim); color:#f7c877; }
+  select.urg-select[data-v="alta"]{ background-color: var(--red-dim); color:#ff9d7a; }
+  select.status-select[data-v="pendente"]{ background-color: var(--gray-dim); color:#c4c9d2; }
+  select.status-select[data-v="fazendo"]{ background-color: var(--blue-dim); color:#a9c4ff; }
+  select.status-select[data-v="concluido"]{ background-color: var(--green-dim); color:#a2edbe; }
+  select.revstatus-select[data-v="andamento"]{ background-color: var(--blue-dim); color:#a9c4ff; }
+  select.revstatus-select[data-v="revisado"]{ background-color: var(--green-dim); color:#a2edbe; }
+  select.revstatus-select[data-v="erro"]{ background-color: var(--red-dim); color:#ff9d7a; }
+
+  .rm-row-btn{
+    width:26px; height:26px; border-radius:7px; border:1px solid var(--line);
+    background: var(--bg); color: var(--text-faint); cursor:pointer; font-size:15px;
+    line-height:1; display:flex; align-items:center; justify-content:center;
+  }
+  .rm-row-btn:hover{ color: var(--red); border-color: var(--red); }
+
+  .no-lang-row{
+    padding: 14px 22px 18px; font-size:12.5px; color: var(--text-faint); font-style:italic;
+  }
+
+  .panel-footer{
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 16px 22px 20px; border-top: 1px solid var(--line-soft);
+  }
+  .add-editor-btn{
+    font-size:13px; font-weight:700; color: var(--amber); background: var(--amber-dim);
+    border:1px solid color-mix(in srgb, var(--amber) 35%, transparent); padding: 9px 16px; border-radius:8px; cursor:pointer;
+  }
+  .add-editor-btn:hover{ background: color-mix(in srgb, var(--amber) 22%, transparent); }
+  .hint{ font-size:12px; color: var(--text-faint); }
+
+  /* ---------- LANGUAGE PICKER POPOVER ---------- */
+  .lang-popover{
+    position:absolute; top: calc(100% + 6px); right:0; z-index: 50;
+    width: 250px; max-height: 280px; overflow-y:auto;
+    background: var(--panel-2); border:1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0,0,0,.5);
+    padding: 8px; text-align:left;
+  }
+  .lang-popover input.search{
+    width:100%; background: var(--bg); border:1px solid var(--line); color: var(--text);
+    padding: 8px 9px; border-radius:7px; font-size:12.5px; margin-bottom:6px; font-weight:400;
+  }
+  .lang-popover input.search:focus{ outline:none; border-color: var(--teal); }
+  .lang-option{
+    padding: 7px 9px; border-radius:6px; font-size:12.5px; cursor:pointer; color: var(--text-dim); font-weight:500;
+  }
+  .lang-option:hover{ background: var(--panel); color: var(--text); }
+  .lang-empty{ padding: 10px 9px; font-size:12px; color: var(--text-faint); font-weight:400; }
+
+  @media (max-width: 720px){
+    .grid{ min-width: 800px; }
+  }
+
+  /* ---------- PROGRESSO ACUMULADO DO FILME (Vocal + Efeitos + Música) ---------- */
+  .overall-block{ border-bottom: 1px solid var(--line-soft); }
+  .overall-block .progress-track{ height: 18px; }
+  .stage-pills{ display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  .stage-pill{
+    flex:1 1 150px; background: var(--panel-2); border:1.5px solid var(--line-soft);
+    border-radius:9px; padding:9px 13px; display:flex; justify-content:space-between; align-items:center;
+    font-size:12px; font-weight:700; color: var(--text-dim); transition: all .15s ease;
+  }
+  .stage-pill.active{ border-color: var(--amber); color: var(--text); background: var(--amber-dim); }
+  .stage-pill-name{ text-transform:uppercase; letter-spacing:.5px; font-size:11px; }
+  .stage-pill-pct{ font-family: var(--font-mono); color: var(--text); font-size:13px; }
+
+  .stage-block{ border-bottom: 1px solid var(--line-soft); }
+
+  /* ---------- GRADE SIMPLIFICADA (Efeitos / Música — sem coluna de Idiomas) ---------- */
+  .grid.simple{ min-width: 760px; }
+  .grid.simple .grid-row{
+    grid-template-columns: 26px 1.6fr 1fr 1fr 1fr 1fr 34px;
+  }
+  .cell input.editor-name-input.inline{
+    width:100%; background: var(--bg); border:1px solid var(--line);
+    color: var(--text); font-size: 13px; font-weight:700; padding: 8px 9px;
+    border-radius: 7px; font-family: var(--font-body);
+  }
+  .cell input.editor-name-input.inline::placeholder{ color: var(--text-faint); font-weight:400; }
+  .cell input.editor-name-input.inline:focus{ outline:none; border-color: var(--teal); }
+
+  @media (max-width: 720px){
+    .grid.simple{ min-width: 640px; }
+  }
+
+  /* ---------- AUTENTICAÇÃO ---------- */
+  .auth-overlay{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
+  .auth-card{width:min(430px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 20px 50px rgba(0,0,0,.35);}
+  .auth-card h2{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;}
+  .auth-card p{color:var(--text-dim);font-size:13px;margin-bottom:20px;}
+  .auth-card input{width:100%;margin:7px 0;background:var(--bg);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:8px;}
+  .auth-card button{width:100%;margin-top:10px;padding:12px;border:0;border-radius:8px;background:var(--amber);color:#1a1305;font-weight:800;cursor:pointer;}
+  .auth-card .auth-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--line);}
+  .auth-error{color:var(--red);font-size:12px;margin-top:10px;min-height:18px;}
+  .user-session{font-size:12px;color:var(--text-dim);display:flex;gap:8px;align-items:center;}.logout-btn{cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--text-dim);padding:7px 10px;border-radius:7px;}
+</style>
+</head>
+<body>
+
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <h2>Estação de Editores</h2>
+    <p>Entre com sua conta para acessar os filmes e manter os dados sincronizados.</p>
+    <input id="authEmail" type="email" placeholder="E-mail">
+    <input id="authPassword" type="password" placeholder="Senha">
+    <button onclick="signIn()">Entrar</button>
+    <button class="auth-secondary" onclick="signUp()">Criar conta</button>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="station-layout">
+    <div class="station-main">
+      <div class="masthead">
+        <div class="slate-icon">🎥</div>
+        <div class="titles">
+          <h1>Estação de Editores</h1>
+          <p>Vocal · Efeitos · Música — 7 editores por equipe · funciona 100% offline</p>
+        </div>
+        <div class="io-actions"><span class="user-session" id="userSession"></span><button class="logout-btn" id="logoutBtn" style="display:none" onclick="signOut()">Sair</button>
+          <div class="theme-toggle">
+            <button class="theme-btn" id="themeBtnDark" onclick="setTheme('dark')">Dark</button>
+            <button class="theme-btn" id="themeBtnLight" onclick="setTheme('light')">White</button>
+          </div>
+          <button class="io-btn" onclick="document.getElementById('importFile').click()">Importar dados</button>
+          <button class="io-btn primary" onclick="exportData()">Exportar dados</button>
+          <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(this.files[0])">
+        </div>
+      </div>
+
+      <div class="movie-tabs" id="movieTabs"></div>
+
+      <div id="content"></div>
+    </div>
+
+    <div class="station-side">
+      <div class="dept-tabs" id="deptTabs"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://crcoamhzqwbbkhytiokm.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_JWUy3AJulp9FKqSpwUkt3A_Eqs1_NrV';
+const DEFAULT_EDITORS = 7;
+const STORAGE_KEY = 'estacao_editores_v3';
+const OLD_STORAGE_KEY_V2 = 'estacao_editores_v2';
+const OLD_STORAGE_KEY_V1 = 'painel_edicao_audio_v1';
+const THEME_KEY = 'estacao_editores_theme';
+const CLOUD_TABLE = 'editor_panel_shared_data';
+const CLOUD_ROW_ID = 1;
+let supabaseClient = null;
+let currentUser = null;
+let cloudSaveTimer = null;
+let cloudEnabled = false;
+
+const DEPTS = [
+  { key:'vocal', label:'Vocal' },
+  { key:'efeitos', label:'Efeitos' },
+  { key:'musica', label:'Música' }
+];
+const LANGUAGES_RAW = [
+  'Português (BR) 5.1','Português (BR) 2.0','Português (PT) 5.1',
+  'Português (PT) 2.0','Inglês 5.1','Inglês 2.0',
+  'Espanhol 5.1','Espanhol 2.0','Espanhol (LATAM) 5.1',
+  'Espanhol (LATAM) 2.0','Francês 5.1','Francês 2.0',
+  'Alemão 5.1','Alemão 2.0','Italiano 5.1',
+  'Italiano 2.0','Holandês 5.1','Holandês 2.0',
+  'Russo 5.1','Russo 2.0','Polonês 5.1',
+  'Polonês 2.0','Ucraniano 5.1','Ucraniano 2.0',
+  'Sueco 5.1','Sueco 2.0','Norueguês 5.1',
+  'Norueguês 2.0','Dinamarquês 5.1','Dinamarquês 2.0',
+  'Finlandês 5.1','Finlandês 2.0','Grego 5.1',
+  'Grego 2.0','Turco 5.1','Turco 2.0',
+  'Árabe 5.1','Árabe 2.0','Hebraico 5.1',
+  'Hebraico 2.0','Persa (Farsi) 5.1','Persa (Farsi) 2.0',
+  'Hindi 5.1','Hindi 2.0','Bengali 5.1',
+  'Bengali 2.0','Urdu 5.1','Urdu 2.0',
+  'Tâmil 5.1','Tâmil 2.0','Telugu 5.1',
+  'Telugu 2.0','Chinês (Mandarim) 5.1','Chinês (Mandarim) 2.0',
+  'Chinês (Cantonês) 5.1','Chinês (Cantonês) 2.0','Japonês 5.1',
+  'Japonês 2.0','Coreano 5.1','Coreano 2.0',
+  'Vietnamita 5.1','Vietnamita 2.0','Tailandês 5.1',
+  'Tailandês 2.0','Indonésio 5.1','Indonésio 2.0',
+  'Malaio 5.1','Malaio 2.0','Filipino (Tagalo) 5.1',
+  'Filipino (Tagalo) 2.0','Húngaro 5.1','Húngaro 2.0',
+  'Tcheco 5.1','Tcheco 2.0','Eslovaco 5.1',
+  'Eslovaco 2.0','Romeno 5.1','Romeno 2.0',
+  'Búlgaro 5.1','Búlgaro 2.0'
+];
+// Ordenado alfabeticamente pelo nome do idioma (mantendo 5.1 antes de 2.0 para o mesmo idioma)
+const LANGUAGES = [...LANGUAGES_RAW].sort((a, b) => {
+  const baseA = a.replace(/\s*(5\.1|2\.0)$/, '');
+  const baseB = b.replace(/\s*(5\.1|2\.0)$/, '');
+  const cmp = baseA.localeCompare(baseB, 'pt-BR');
+  if (cmp !== 0) return cmp;
+  const orderA = a.endsWith('5.1') ? 0 : 1;
+  const orderB = b.endsWith('5.1') ? 0 : 1;
+  return orderA - orderB;
+});
+
+/* ==========================================================================
+   MODELO DE DADOS (v3)
+   ----------------------------------------------------------------------
+   O FILME é a entidade principal (lista única, não mais uma lista por
+   departamento). Cada filme carrega suas 3 etapas em `depts`:
+     movie.depts.vocal.editors[]   -> cada editor tem idiomas[] (por idioma)
+     movie.depts.efeitos.editors[] -> cada editor tem 1 tarefa (sem idioma)
+     movie.depts.musica.editors[]  -> cada editor tem 1 tarefa (sem idioma)
+   O progresso de cada etapa fica sempre calculado a partir dos dados do
+   próprio filme, e o progresso GERAL do filme é a média cumulativa das
+   3 etapas — por isso ele nunca "zera" ao trocar de aba.
+   ========================================================================== */
+
+let movies = [];
+let activeId = null;
+let activeDept = 'vocal';
+let openPickerFor = null;
+let pickerSearch = '';
+let storageOk = true;
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+function blankLangRow(idioma){
+  return { id: uid(), idioma: idioma, inicio:'', entrega:'', urgencia:'media', status:'pendente', revisor:'', statusRevisao:'andamento' };
+}
+function blankVocalEditor(n){
+  return { id: uid(), nome: 'Editor ' + n, idiomas: [] };
+}
+function blankSimpleEditor(n){
+  return { id: uid(), nome: 'Editor ' + n, inicio:'', entrega:'', urgencia:'media', status:'pendente' };
+}
+function blankMovie(){
+  const vocalEditors = [], efeitosEditors = [], musicaEditors = [];
+  for(let i=1;i<=DEFAULT_EDITORS;i++){
+    vocalEditors.push(blankVocalEditor(i));
+    efeitosEditors.push(blankSimpleEditor(i));
+    musicaEditors.push(blankSimpleEditor(i));
+  }
+  return {
+    id: uid(), nome:'', caminho:'', poster:'',
+    depts: {
+      vocal:   { editors: vocalEditors },
+      efeitos: { editors: efeitosEditors },
+      musica:  { editors: musicaEditors }
+    }
+  };
+}
+
+function ensureMovieShape(m){
+  if(!m.depts) m.depts = {};
+  DEPTS.forEach(d => {
+    if(!m.depts[d.key]) m.depts[d.key] = { editors: [] };
+    if(!Array.isArray(m.depts[d.key].editors)) m.depts[d.key].editors = [];
+  });
+  m.depts.vocal.editors.forEach(e => {
+    if(!Array.isArray(e.idiomas)) e.idiomas = [];
+    e.idiomas.forEach(r => {
+      if(!r.statusRevisao) r.statusRevisao = 'andamento';
+      if(r.revisor === undefined) r.revisor = '';
+    });
+  });
+  ['efeitos','musica'].forEach(k => {
+    m.depts[k].editors.forEach(e => {
+      if(e.inicio === undefined) e.inicio = '';
+      if(e.entrega === undefined) e.entrega = '';
+      if(!e.urgencia) e.urgencia = 'media';
+      if(!e.status) e.status = 'pendente';
+    });
+  });
+  return m;
+}
+
+/* ---------- MIGRAÇÃO DE FORMATOS ANTIGOS ---------- */
+
+function migrateVocalEditorLegacy(e){
+  if(Array.isArray(e.idiomas) && e.idiomas.length && typeof e.idiomas[0] === 'string'){
+    const oldInicio = e.inicio || '';
+    const oldEntrega = e.entrega || '';
+    const oldUrg = e.urgencia || 'media';
+    const oldStatus = e.status || 'pendente';
+    e.idiomas = e.idiomas.map(l => ({ id: uid(), idioma: l, inicio: oldInicio, entrega: oldEntrega, urgencia: oldUrg, status: oldStatus, revisor:'', statusRevisao:'andamento' }));
+  }
+  if(!Array.isArray(e.idiomas)) e.idiomas = [];
+  e.idiomas.forEach(r => { if(!r.statusRevisao) r.statusRevisao = 'andamento'; if(r.revisor===undefined) r.revisor=''; });
+  delete e.inicio; delete e.entrega; delete e.urgencia; delete e.status;
+  return e;
+}
+
+// v2: { vocal:{movies:[...]}, efeitos:{movies:[...]}, musica:{movies:[...]} } — cada
+// departamento com sua PRÓPRIA lista de filmes. Unifica por nome do filme.
+function migrateV2ToV3(v2){
+  const byKey = new Map();
+  const order = [];
+  DEPTS.forEach(dept => {
+    const dm = (v2[dept.key] && Array.isArray(v2[dept.key].movies)) ? v2[dept.key].movies : [];
+    dm.forEach(m => {
+      const key = (m.nome || '').trim().toLowerCase() || ('__' + m.id);
+      if(!byKey.has(key)){
+        byKey.set(key, { id: m.id || uid(), nome: m.nome || '', caminho: m.caminho || '', poster: m.poster || '', depts: {} });
+        order.push(key);
+      }
+      const rec = byKey.get(key);
+      if(dept.key === 'vocal'){
+        (m.editors || []).forEach(migrateVocalEditorLegacy);
+        rec.depts.vocal = { editors: (m.editors || []).map(e => ({
+          id: e.id || uid(), nome: e.nome || '',
+          idiomas: (e.idiomas || []).map(r => ({
+            id: r.id || uid(), idioma: r.idioma, inicio: r.inicio || '', entrega: r.entrega || '',
+            urgencia: r.urgencia || 'media', status: r.status || 'pendente',
+            revisor: r.revisor || '', statusRevisao: r.statusRevisao || 'andamento'
+          }))
+        })) };
+      } else {
+        rec.depts[dept.key] = { editors: (m.editors || []).map(e => {
+          const rows = Array.isArray(e.idiomas) ? e.idiomas : [];
+          const first = rows[0] || {};
+          const anyConcluido = rows.some(r => r.status === 'concluido');
+          const anyFazendo = rows.some(r => r.status === 'fazendo');
+          return {
+            id: e.id || uid(), nome: e.nome || '',
+            inicio: first.inicio || e.inicio || '',
+            entrega: first.entrega || e.entrega || '',
+            urgencia: first.urgencia || e.urgencia || 'media',
+            status: anyConcluido ? 'concluido' : (anyFazendo ? 'fazendo' : (first.status || e.status || 'pendente'))
+          };
+        }) };
+      }
+    });
+  });
+  const result = order.map(k => byKey.get(k));
+  result.forEach(ensureMovieShape);
+  return { movies: result, activeMovieId: result.length ? result[0].id : null };
+}
+
+// v1: array simples de filmes (painel único, equivalente a Vocal)
+function migrateV1ToV3(arr){
+  const fakeV2 = { vocal: { movies: arr }, efeitos: { movies: [] }, musica: { movies: [] } };
+  return migrateV2ToV3(fakeV2);
+}
+
+function checkStorage(){
+  try{
+    const testKey = '__storage_test__';
+    localStorage.setItem(testKey, '1');
+    localStorage.removeItem(testKey);
+    storageOk = true;
+  }catch(e){
+    storageOk = false;
+  }
+}
+
+function loadData(){
+  checkStorage();
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      movies = Array.isArray(parsed.movies) ? parsed.movies : [];
+      movies.forEach(ensureMovieShape);
+      activeId = parsed.activeMovieId || (movies[0] && movies[0].id) || null;
+    }else{
+      const rawV2 = localStorage.getItem(OLD_STORAGE_KEY_V2);
+      if(rawV2){
+        const migrated = migrateV2ToV3(JSON.parse(rawV2));
+        movies = migrated.movies;
+        activeId = migrated.activeMovieId;
+      }else{
+        const rawV1 = localStorage.getItem(OLD_STORAGE_KEY_V1);
+        if(rawV1){
+          const migrated = migrateV1ToV3(JSON.parse(rawV1));
+          movies = migrated.movies;
+          activeId = migrated.activeMovieId;
+        }
+      }
+    }
+  }catch(e){
+    movies = [];
+    activeId = null;
+  }
+  if(!activeId && movies.length) activeId = movies[0].id;
+  applyDeptTheme();
+  render();
+  loadTheme();
+}
+
+function saveData(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, activeMovieId: activeId }));
+    storageOk = true;
+  }catch(e){
+    console.error('Falha ao salvar localmente', e);
+    storageOk = false;
+  }
+  scheduleCloudSave();
+}
+
+function scheduleCloudSave(){
+  if(!cloudEnabled || !supabaseClient || !currentUser) return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(saveCloudData, 350);
+}
+
+async function saveCloudData(){
+  if(!cloudEnabled || !supabaseClient || !currentUser) return;
+  try{
+    const payload = { movies, activeMovieId: activeId, activeDept };
+    const { error } = await supabaseClient.from(CLOUD_TABLE).upsert({
+      id: CLOUD_ROW_ID,
+      payload,
+      updated_at: new Date().toISOString(),
+      updated_by: currentUser.id
+    }, { onConflict: 'id' });
+    if(error) throw error;
+  }catch(e){
+    console.error('Falha ao salvar na nuvem', e);
+  }
+}
+
+async function loadCloudData(){
+  if(!cloudEnabled || !supabaseClient || !currentUser) return false;
+  const { data, error } = await supabaseClient.from(CLOUD_TABLE).select('payload').eq('id', CLOUD_ROW_ID).maybeSingle();
+  if(error){ console.error('Falha ao carregar dados da nuvem', error); return false; }
+  if(data && data.payload){
+    const payload = data.payload;
+    movies = Array.isArray(payload.movies) ? payload.movies : [];
+    movies.forEach(ensureMovieShape);
+    activeId = payload.activeMovieId || (movies[0] && movies[0].id) || null;
+    activeDept = payload.activeDept || 'vocal';
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, activeMovieId: activeId })); }catch(e){}
+    return true;
+  }
+  return false;
+}
+
+
+function switchDept(key){
+  activeDept = key;
+  openPickerFor = null;
+  saveData();
+  applyDeptTheme();
+  render();
+}
+
+function applyDeptTheme(){
+  document.body.classList.remove('dept-vocal', 'dept-efeitos', 'dept-musica');
+  document.body.classList.add('dept-' + activeDept);
+}
+
+function exportData(){
+  const blob = new Blob([JSON.stringify({ movies, activeMovieId: activeId }, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = 'estacao-editores-' + date + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importData(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    try{
+      const parsed = JSON.parse(evt.target.result);
+      if(Array.isArray(parsed)){
+        const migrated = migrateV1ToV3(parsed);
+        movies = migrated.movies;
+        activeId = migrated.activeMovieId;
+      }else if(parsed && Array.isArray(parsed.movies)){
+        movies = parsed.movies;
+        movies.forEach(ensureMovieShape);
+        activeId = parsed.activeMovieId || (movies[0] && movies[0].id) || null;
+      }else if(parsed && (parsed.vocal || parsed.efeitos || parsed.musica)){
+        const migrated = migrateV2ToV3(parsed);
+        movies = migrated.movies;
+        activeId = migrated.activeMovieId;
+      }else{
+        throw new Error('formato inválido');
+      }
+      if(!activeId && movies.length) activeId = movies[0].id;
+      saveData();
+      render();
+    }catch(e){
+      alert('Não foi possível importar este arquivo. Verifique se é um backup exportado por este painel.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function setTheme(t){
+  document.body.classList.toggle('theme-light', t==='light');
+  try{ localStorage.setItem(THEME_KEY, t); }catch(e){}
+  document.getElementById('themeBtnDark').classList.toggle('active', t==='dark');
+  document.getElementById('themeBtnLight').classList.toggle('active', t==='light');
+}
+
+function loadTheme(){
+  let t = 'dark';
+  try{ t = localStorage.getItem(THEME_KEY) || 'dark'; }catch(e){}
+  setTheme(t);
+}
+
+function addMovie(){
+  const m = blankMovie();
+  movies.unshift(m);
+  activeId = m.id;
+  saveData();
+  render();
+}
+
+function deleteMovie(id){
+  if(!confirm('Remover este filme e todos os dados associados (Vocal + Efeitos + Música)?')) return;
+  movies = movies.filter(m=>m.id!==id);
+  if(activeId===id) activeId = movies.length ? movies[0].id : null;
+  saveData();
+  render();
+}
+
+function addEditorRow(movieId){
+  const m = movies.find(m=>m.id===movieId);
+  const arr = m.depts[activeDept].editors;
+  arr.push(activeDept === 'vocal' ? blankVocalEditor(arr.length+1) : blankSimpleEditor(arr.length+1));
+  saveData();
+  render();
+}
+
+function removeEditorRow(movieId, editorId){
+  const m = movies.find(m=>m.id===movieId);
+  m.depts[activeDept].editors = m.depts[activeDept].editors.filter(e=>e.id!==editorId);
+  saveData();
+  render();
+}
+
+function updateEditorName(movieId, editorId, value){
+  const m = movies.find(m=>m.id===movieId);
+  const e = m.depts.vocal.editors.find(e=>e.id===editorId);
+  e.nome = value;
+  saveData();
+}
+
+function updateMovieField(movieId, field, value){
+  const m = movies.find(m=>m.id===movieId);
+  m[field] = value;
+  saveData();
+}
+
+function updateLangRowField(movieId, editorId, rowId, field, value){
+  const m = movies.find(m=>m.id===movieId);
+  const e = m.depts.vocal.editors.find(e=>e.id===editorId);
+  const row = e.idiomas.find(r=>r.id===rowId);
+  row[field] = value;
+  if(field==='status' && value==='concluido'){
+    row.entrega = todayISO();
+  }
+  saveData();
+  if(field==='urgencia' || field==='status' || field==='statusRevisao'){
+    render();
+  }
+}
+
+function updateSimpleEditorField(movieId, editorId, field, value){
+  const m = movies.find(m=>m.id===movieId);
+  const e = m.depts[activeDept].editors.find(e=>e.id===editorId);
+  e[field] = value;
+  if(field==='status' && value==='concluido'){
+    e.entrega = todayISO();
+  }
+  saveData();
+  if(field==='urgencia' || field==='status'){
+    render();
+  }
+}
+
+function todayISO(){
+  const hoje = new Date();
+  const yyyy = hoje.getFullYear();
+  const mm = String(hoje.getMonth()+1).padStart(2,'0');
+  const dd = String(hoje.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function removeLangRow(movieId, editorId, rowId){
+  const m = movies.find(m=>m.id===movieId);
+  const e = m.depts.vocal.editors.find(e=>e.id===editorId);
+  e.idiomas = e.idiomas.filter(r=>r.id!==rowId);
+  saveData();
+  render();
+}
+
+function toggleLangPicker(editorId){
+  openPickerFor = (openPickerFor === editorId) ? null : editorId;
+  pickerSearch = '';
+  render();
+  if(openPickerFor){
+    setTimeout(()=>{
+      const el = document.getElementById('langSearch-'+editorId);
+      if(el) el.focus();
+    }, 0);
+  }
+}
+
+function addLanguageRow(movieId, editorId, lang){
+  const m = movies.find(m=>m.id===movieId);
+  const e = m.depts.vocal.editors.find(e=>e.id===editorId);
+  if(!e.idiomas.some(r=>r.idioma===lang)){
+    e.idiomas.push(blankLangRow(lang));
+  }
+  openPickerFor = null;
+  saveData();
+  render();
+}
+
+function onPickerSearch(value){
+  pickerSearch = value;
+  renderOnly();
+}
+
+function triggerPosterUpload(movieId){
+  const inp = document.getElementById('posterInput-'+movieId);
+  if(inp) inp.click();
+}
+
+function handlePosterUpload(movieId, file){
+  if(!file) return;
+  if(!/^image\/jpe?g$/i.test(file.type)){
+    alert('Por favor selecione uma imagem no formato JPEG (.jpg ou .jpeg).');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    const m = movies.find(m=>m.id===movieId);
+    const anterior = m.poster;
+    m.poster = evt.target.result;
+    saveData();
+    if(!storageOk){
+      alert('Esta imagem é muito grande para ser salva no armazenamento local do navegador. Tente uma imagem em resolução menor.');
+      m.poster = anterior;
+      saveData();
+    }
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePoster(movieId, ev){
+  if(ev) ev.stopPropagation();
+  const m = movies.find(m=>m.id===movieId);
+  m.poster = '';
+  saveData();
+  render();
+}
+
+function copyPath(movieId){
+  const m = movies.find(m=>m.id===movieId);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(m.caminho || '').catch(()=>{});
+  }
+  const btn = document.getElementById('copyBtn-'+movieId);
+  if(btn){ const old = btn.textContent; btn.textContent = 'Copiado!'; setTimeout(()=>btn.textContent=old, 1200); }
+}
+
+function esc(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function renderOnly(){
+  render();
+  const input = document.getElementById('langSearch-'+openPickerFor);
+  if(input){
+    input.focus();
+    input.value = pickerSearch;
+    input.selectionStart = input.selectionEnd = input.value.length;
+  }
+}
+
+/* ---------- CÁLCULO DE PROGRESSO (por etapa e cumulativo do filme) ---------- */
+
+function stageRows(m, deptKey){
+  return deptKey === 'vocal'
+    ? m.depts.vocal.editors.flatMap(e => e.idiomas)
+    : m.depts[deptKey].editors;
+}
+
+function stagePercent(m, deptKey){
+  const rows = stageRows(m, deptKey);
+  if(!rows.length) return 0;
+  const concluido = rows.filter(r=>r.status==='concluido').length;
+  return Math.round(concluido / rows.length * 100);
+}
+
+// Progresso cumulativo do filme: média das 3 etapas — cada etapa contribui
+// 1/3 do total, e o valor de uma etapa concluída permanece contando mesmo
+// depois de o usuário avançar para a etapa seguinte.
+function overallPercent(m){
+  const pcts = DEPTS.map(d => stagePercent(m, d.key));
+  return Math.round(pcts.reduce((a,b)=>a+b,0) / pcts.length);
+}
+
+function movieOverallCounts(m){
+  let total = 0, done = 0;
+  DEPTS.forEach(d => {
+    const rows = stageRows(m, d.key);
+    total += rows.length;
+    done += rows.filter(r=>r.status==='concluido').length;
+  });
+  return { done, total };
+}
+
+function deptStatusForMovie(m, deptKey){
+  const rows = stageRows(m, deptKey);
+  if(!rows.length) return { cls:'vazio', label:'Sem dados' };
+  const total = rows.length;
+  const concluido = rows.filter(r=>r.status==='concluido').length;
+  const pendente = rows.filter(r=>r.status==='pendente').length;
+  if(concluido===total) return { cls:'concluido', label:'Concluído' };
+  if(pendente===total) return { cls:'pendente', label:'Pendente' };
+  return { cls:'fazendo', label:'Fazendo (' + Math.round(concluido/total*100) + '%)' };
+}
+
+/* ---------- RENDERIZAÇÃO ---------- */
+
+function renderMovieTabs(){
+  const tabs = document.getElementById('movieTabs');
+  tabs.innerHTML = movies.map(m => {
+    const { done, total } = movieOverallCounts(m);
+    return `<div class="movie-chip ${m.id===activeId?'active':''}" id="tab-${m.id}" onclick="selectMovie('${m.id}')">
+      ${esc(m.nome) || 'Sem título'} <span class="count">${done}/${total}</span>
+    </div>`;
+  }).join('') + `<button class="add-movie-btn" onclick="addMovie()">+ Novo Filme</button>`;
+}
+
+function renderDeptTabs(m){
+  const wrap = document.getElementById('deptTabs');
+  wrap.innerHTML = DEPTS.map(d => {
+    const st = deptStatusForMovie(m, d.key);
+    return `
+      <div class="dept-tab ${d.key===activeDept?'active':''}" data-dept="${d.key}" onclick="switchDept('${d.key}')">
+        <div class="dept-tab-left">
+          <span class="dept-name">${d.label}</span>
+          <span class="dept-status-label">${st.label}</span>
+        </div>
+        <span class="dept-status-dot ${st.cls}" title="${st.label}"></span>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectMovie(id){
+  activeId = id;
+  openPickerFor = null;
+  saveData();
+  render();
+}
+
+function syncTabName(id, value){
+  const chip = document.getElementById('tab-'+id);
+  if(chip) chip.firstChild.textContent = (value || 'Sem título') + ' ';
+}
+
+function render(){
+  renderMovieTabs();
+  const content = document.getElementById('content');
+  const deptWrap = document.getElementById('deptTabs');
+
+  if(!movies.length){
+    deptWrap.innerHTML = '';
+    content.innerHTML = `
+      <div class="empty">
+        <h2>Nenhum filme cadastrado</h2>
+        <p>Crie o primeiro filme para começar a distribuir o trabalho entre Vocal, Efeitos e Música.</p>
+        <button onclick="addMovie()">+ Novo Filme</button>
+      </div>`;
+    return;
+  }
+
+  let m = movies.find(x=>x.id===activeId);
+  if(!m){ m = movies[0]; activeId = m.id; }
+
+  renderDeptTabs(m);
+  applyDeptTheme();
+
+  const stagePct = {};
+  DEPTS.forEach(d => { stagePct[d.key] = stagePercent(m, d.key); });
+  const overallPct = overallPercent(m);
+
+  content.innerHTML = `
+    <div class="movie-panel">
+      ${movieHeaderHtml(m)}
+      ${pathRowHtml(m)}
+      ${overallProgressHtml(stagePct, overallPct)}
+      ${stageProgressHtml(m, activeDept)}
+      <div class="editors-wrap">
+        ${activeDept === 'vocal'
+          ? m.depts.vocal.editors.map(e => vocalEditorGroupHtml(m.id, e)).join('')
+          : simpleEditorsTableHtml(m.id, m.depts[activeDept].editors)}
+      </div>
+      <div class="panel-footer">
+        <button class="add-editor-btn" onclick="addEditorRow('${m.id}')">+ Adicionar editor</button>
+        <span class="hint">Clique nos campos para editar — salvamento automático e sincronização pela conta</span>
+      </div>
+    </div>
+  `;
+}
+
+function movieHeaderHtml(m){
+  return `
+    <div class="movie-header">
+      <div class="movie-identity">
+        <div class="poster-upload" onclick="triggerPosterUpload('${m.id}')" title="${m.poster ? 'Clique para trocar o pôster' : 'Adicionar pôster (JPEG)'}">
+          ${m.poster ? `
+            <img src="${m.poster}" alt="Pôster do filme">
+            <button class="poster-remove" onclick="removePoster('${m.id}', event)" title="Remover pôster">✕</button>
+          ` : `<span class="poster-plus">+</span>`}
+          <input type="file" id="posterInput-${m.id}" accept="image/jpeg" style="display:none" onchange="handlePosterUpload('${m.id}', this.files[0])">
+        </div>
+        <div class="movie-title-field">
+          <span class="field-label">Nome do Filme</span>
+          <input type="text" placeholder="Ex: A Última Sessão" value="${esc(m.nome)}"
+            oninput="updateMovieField('${m.id}','nome', this.value); syncTabName('${m.id}', this.value)">
+        </div>
+      </div>
+      <button class="del-movie-btn" onclick="deleteMovie('${m.id}')">Remover filme</button>
+    </div>
+  `;
+}
+
+function pathRowHtml(m){
+  return `
+    <div class="path-row">
+      <div class="path-field">
+        <span class="field-label">Caminho para download dos arquivos</span>
+        <div class="input-shell">
+          <input type="text" id="pathInput-${m.id}" placeholder="Ex: //servidor/projetos/filme_x/audio_bruto ou link do Drive"
+            value="${esc(m.caminho)}" oninput="updateMovieField('${m.id}','caminho', this.value)">
+          <button class="copy-btn" id="copyBtn-${m.id}" onclick="copyPath('${m.id}')">Copiar</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function overallProgressHtml(stagePct, overallPct){
+  return `
+    <div class="progress-block overall-block">
+      <div class="progress-top">
+        <span class="field-label">Progresso acumulado do filme (Vocal + Efeitos + Música)</span>
+        <span class="progress-total">${overallPct}% concluído</span>
+      </div>
+      <div class="progress-track">
+        ${overallPct>0?`<div class="progress-seg concluido" style="width:${overallPct}%"></div>`:''}
+        ${overallPct<100?`<div class="progress-seg pendente" style="width:${100-overallPct}%"></div>`:''}
+      </div>
+      <div class="stage-pills">
+        ${DEPTS.map(d => `
+          <div class="stage-pill ${d.key===activeDept?'active':''}">
+            <span class="stage-pill-name">${d.label}</span>
+            <span class="stage-pill-pct">${stagePct[d.key]}%</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function stageProgressHtml(m, deptKey){
+  const rows = stageRows(m, deptKey);
+  const counts = { pendente:0, fazendo:0, concluido:0 };
+  rows.forEach(r => { if(counts[r.status]!==undefined) counts[r.status]++; });
+  const total = rows.length || 1;
+  const pctPendente = Math.round(counts.pendente/total*100);
+  const pctFazendo = Math.round(counts.fazendo/total*100);
+  const pctConcluido = Math.round(counts.concluido/total*100);
+  const deptLabel = DEPTS.find(d=>d.key===deptKey).label;
+  const unidade = deptKey === 'vocal' ? 'idiomas' : 'tarefas';
+  return `
+    <div class="progress-block stage-block">
+      <div class="progress-top">
+        <span class="field-label">Progresso da etapa — ${deptLabel}</span>
+        <span class="progress-total">${counts.concluido}/${rows.length} ${unidade} concluídos</span>
+      </div>
+      <div class="progress-track">
+        ${pctPendente>0?`<div class="progress-seg pendente" style="width:${pctPendente}%"></div>`:''}
+        ${pctFazendo>0?`<div class="progress-seg fazendo" style="width:${pctFazendo}%"></div>`:''}
+        ${pctConcluido>0?`<div class="progress-seg concluido" style="width:${pctConcluido}%"></div>`:''}
+      </div>
+      <div class="progress-legend">
+        <div class="leg"><span class="sw pendente"></span>Pendente — ${pctPendente}%</div>
+        <div class="leg"><span class="sw fazendo"></span>Fazendo — ${pctFazendo}%</div>
+        <div class="leg"><span class="sw concluido"></span>Concluído — ${pctConcluido}%</div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- ETAPA VOCAL (por idioma, com revisor) ---------- */
+
+function vocalEditorGroupHtml(movieId, e){
+  const n = e.idiomas.length;
+
+  let popover = '';
+  if(openPickerFor === e.id){
+    const search = pickerSearch.toLowerCase();
+    const taken = e.idiomas.map(r=>r.idioma);
+    const available = LANGUAGES.filter(l => !taken.includes(l) && l.toLowerCase().includes(search));
+    popover = `
+      <div class="lang-popover" onclick="event.stopPropagation()">
+        <input class="search" id="langSearch-${e.id}" type="text" placeholder="Buscar idioma..."
+          oninput="onPickerSearch(this.value)">
+        ${available.length ? available.map(l => `
+          <div class="lang-option" onclick="addLanguageRow('${movieId}','${e.id}','${l.replace(/'/g,"\\'")}')">${esc(l)}</div>
+        `).join('') : `<div class="lang-empty">Nenhum idioma encontrado</div>`}
+      </div>`;
+  }
+
+  const rows = e.idiomas.length ? `
+    <div class="table-scroll">
+      <div class="grid has-revisor">
+        <div class="grid-row grid-head">
+          <span></span><span>Idioma</span><span>Nº</span><span>Início</span>
+          <span>Entrega</span><span>Urgência</span><span>Revisor</span><span>Status Revisão</span><span>Status</span><span></span>
+        </div>
+        ${e.idiomas.map((r, idx) => vocalLangRowHtml(movieId, e.id, r, idx)).join('')}
+      </div>
+    </div>
+  ` : `<div class="no-lang-row">Nenhum idioma adicionado ainda — clique em "+ Adicionar idioma" acima.</div>`;
+
+  return `
+    <div class="editor-group">
+      <div class="editor-group-header">
+        <input class="editor-name-input" type="text" value="${esc(e.nome)}" placeholder="Nome do editor"
+          oninput="updateEditorName('${movieId}','${e.id}', this.value)">
+        <span class="lang-badge">${n} idioma${n===1?'':'s'}</span>
+        <div class="spacer"></div>
+        <button class="add-lang-inline-btn" onclick="event.stopPropagation(); toggleLangPicker('${e.id}')">+ Adicionar idioma</button>
+        <button class="rm-editor-btn" onclick="removeEditorRow('${movieId}','${e.id}')">Remover editor</button>
+        ${popover}
+      </div>
+      ${rows}
+    </div>
+  `;
+}
+
+function vocalLangRowHtml(movieId, editorId, r, idx){
+  return `
+    <div class="grid-row grid-body-row">
+      <div class="urg-bar ${r.urgencia}"></div>
+      <div class="lang-name">${esc(r.idioma)}</div>
+      <div class="lang-index">${idx+1}</div>
+      <div class="cell">
+        <input type="date" value="${esc(r.inicio)}"
+          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','inicio', this.value)">
+      </div>
+      <div class="cell">
+        <input type="date" value="${esc(r.entrega)}"
+          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','entrega', this.value)">
+      </div>
+      <div class="cell">
+        <select class="urg-select" data-v="${r.urgencia}"
+          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','urgencia', this.value)">
+          <option value="baixa" ${r.urgencia==='baixa'?'selected':''}>Baixa</option>
+          <option value="media" ${r.urgencia==='media'?'selected':''}>Média</option>
+          <option value="alta" ${r.urgencia==='alta'?'selected':''}>Alta</option>
+        </select>
+      </div>
+      <div class="cell">
+        <input type="text" class="revisor-input" placeholder="Nome do revisor" value="${esc(r.revisor)}"
+          oninput="updateLangRowField('${movieId}','${editorId}','${r.id}','revisor', this.value)">
+      </div>
+      <div class="cell">
+        <select class="revstatus-select" data-v="${r.statusRevisao}"
+          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','statusRevisao', this.value)">
+          <option value="andamento" ${r.statusRevisao==='andamento'?'selected':''}>Em andamento</option>
+          <option value="revisado" ${r.statusRevisao==='revisado'?'selected':''}>Revisado</option>
+          <option value="erro" ${r.statusRevisao==='erro'?'selected':''}>Erro encontrado</option>
+        </select>
+      </div>
+      <div class="cell">
+        <select class="status-select" data-v="${r.status}"
+          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','status', this.value)">
+          <option value="pendente" ${r.status==='pendente'?'selected':''}>Pendente</option>
+          <option value="fazendo" ${r.status==='fazendo'?'selected':''}>Fazendo</option>
+          <option value="concluido" ${r.status==='concluido'?'selected':''}>Concluído</option>
+        </select>
+      </div>
+      <button class="rm-row-btn" onclick="removeLangRow('${movieId}','${editorId}','${r.id}')" title="Remover idioma">✕</button>
+    </div>
+  `;
+}
+
+/* ---------- ETAPAS EFEITOS / MÚSICA (1 tarefa por editor, sem coluna de Idioma) ---------- */
+
+function simpleEditorsTableHtml(movieId, editors){
+  if(!editors.length){
+    return `<div class="no-lang-row">Nenhum editor nesta etapa ainda — clique em "+ Adicionar editor" abaixo.</div>`;
+  }
+  return `
+    <div class="table-scroll">
+      <div class="grid simple">
+        <div class="grid-row grid-head">
+          <span></span><span>Editor</span><span>Início</span><span>Entrega</span><span>Urgência</span><span>Status</span><span></span>
+        </div>
+        ${editors.map(e => simpleEditorRowHtml(movieId, e)).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function simpleEditorRowHtml(movieId, e){
+  return `
+    <div class="grid-row grid-body-row">
+      <div class="urg-bar ${e.urgencia}"></div>
+      <div class="cell">
+        <input type="text" class="editor-name-input inline" placeholder="Nome do editor" value="${esc(e.nome)}"
+          oninput="updateSimpleEditorField('${movieId}','${e.id}','nome', this.value)">
+      </div>
+      <div class="cell">
+        <input type="date" value="${esc(e.inicio)}"
+          onchange="updateSimpleEditorField('${movieId}','${e.id}','inicio', this.value)">
+      </div>
+      <div class="cell">
+        <input type="date" value="${esc(e.entrega)}"
+          onchange="updateSimpleEditorField('${movieId}','${e.id}','entrega', this.value)">
+      </div>
+      <div class="cell">
+        <select class="urg-select" data-v="${e.urgencia}"
+          onchange="updateSimpleEditorField('${movieId}','${e.id}','urgencia', this.value)">
+          <option value="baixa" ${e.urgencia==='baixa'?'selected':''}>Baixa</option>
+          <option value="media" ${e.urgencia==='media'?'selected':''}>Média</option>
+          <option value="alta" ${e.urgencia==='alta'?'selected':''}>Alta</option>
+        </select>
+      </div>
+      <div class="cell">
+        <select class="status-select" data-v="${e.status}"
+          onchange="updateSimpleEditorField('${movieId}','${e.id}','status', this.value)">
+          <option value="pendente" ${e.status==='pendente'?'selected':''}>Pendente</option>
+          <option value="fazendo" ${e.status==='fazendo'?'selected':''}>Fazendo</option>
+          <option value="concluido" ${e.status==='concluido'?'selected':''}>Concluído</option>
+        </select>
+      </div>
+      <button class="rm-row-btn" onclick="removeEditorRow('${movieId}','${e.id}')" title="Remover editor">✕</button>
+    </div>
+  `;
+}
+
+document.addEventListener('click', () => {
+  if(openPickerFor){ openPickerFor = null; render(); }
+});
+
+async function initSupabase(){
+  if(!SUPABASE_URL.startsWith('http') || SUPABASE_ANON_KEY.startsWith('COLE_AQUI')) return;
+  try{
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
+    cloudEnabled = true;
+    const { data:{ session } } = await supabaseClient.auth.getSession();
+    if(session?.user) await onAuthenticated(session.user);
+  }catch(e){ console.error('Supabase indisponível', e); }
+}
+
+async function onAuthenticated(user){
+  currentUser = user;
+  const loaded = await loadCloudData();
+  if(!loaded) saveCloudData();
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('userSession').textContent = user.email || 'Usuário autenticado';
+  document.getElementById('logoutBtn').style.display = 'inline-block';
+  applyDeptTheme(); render(); loadTheme();
+}
+
+async function signIn(){
+  if(!cloudEnabled){ setAuthError('Configure SUPABASE_URL e SUPABASE_ANON_KEY no código para ativar o login.'); return; }
+  const email=document.getElementById('authEmail').value.trim();
+  const password=document.getElementById('authPassword').value;
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if(error) return setAuthError(error.message);
+  await onAuthenticated(data.user);
+}
+
+async function signUp(){
+  if(!cloudEnabled){ setAuthError('Configure o Supabase antes de criar contas.'); return; }
+  const email=document.getElementById('authEmail').value.trim();
+  const password=document.getElementById('authPassword').value;
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if(error) return setAuthError(error.message);
+  if(data.user && data.session) await onAuthenticated(data.user);
+  else setAuthError('Conta criada. Verifique seu e-mail para confirmar o cadastro.');
+}
+
+async function signOut(){
+  if(cloudEnabled && supabaseClient) await supabaseClient.auth.signOut();
+  currentUser=null; movies=[]; activeId=null;
+  document.getElementById('authOverlay').style.display='flex';
+  document.getElementById('logoutBtn').style.display='none';
+  document.getElementById('userSession').textContent='';
+  render();
+}
+function setAuthError(msg){ document.getElementById('authError').textContent=msg || ''; }
+
+loadData();
+initSupabase();
+
+// Mantém o painel sincronizado com mudanças de autenticação em outras abas.
+window.addEventListener('online', () => { if(currentUser) loadCloudData().then(ok => { if(ok) render(); }); });
+
+</script>
+</body>
+</html>

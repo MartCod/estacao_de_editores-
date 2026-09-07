@@ -278,13 +278,14 @@
     white-space:nowrap; align-self: flex-start;
   }
   .del-movie-btn:hover{ background: rgba(228,87,46,.25); }
-
   .complete-movie-btn{
-  font-size:12px; font-weight:600; color:#a9c4ff; background:var(--blue-dim);
-  border:1px solid rgba(77,141,255,.45); padding:8px 12px; border-radius:8px;
-  cursor:pointer; white-space:nowrap; align-self:flex-start;
-}
-.complete-movie-btn:hover{ background:rgba(77,141,255,.25); }
+    font-size:12px; font-weight:600; color:#a9c4ff; background:var(--blue-dim);
+    border:1px solid rgba(77,141,255,.45); padding:8px 12px; border-radius:8px;
+    cursor:pointer; white-space:nowrap; align-self:flex-start;
+  }
+  .complete-movie-btn:hover{ background:rgba(77,141,255,.25); }
+  .readonly-value{ color:var(--text); font-size:13px; font-weight:600; padding:8px 0; min-height:34px; }
+  .readonly-path{ color:var(--teal); font-family:var(--font-mono); font-size:13px; overflow-wrap:anywhere; }
 
   .path-row{
     padding: 16px 22px;
@@ -552,8 +553,8 @@
             <button class="theme-btn" id="themeBtnDark" onclick="setTheme('dark')">Dark</button>
             <button class="theme-btn" id="themeBtnLight" onclick="setTheme('light')">White</button>
           </div>
-          <button class="io-btn" onclick="document.getElementById('importFile').click()">Importar dados</button>
-          <button class="io-btn primary" onclick="exportData()">Exportar dados</button>
+          <button class="io-btn" id="importBtn" onclick="document.getElementById('importFile').click()">Importar dados</button>
+          <button class="io-btn primary" id="exportBtn" onclick="exportData()">Exportar dados</button>
           <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(this.files[0])">
         </div>
       </div>
@@ -585,6 +586,7 @@ let supabaseClient = null;
 let currentUser = null;
 let cloudSaveTimer = null;
 let cloudEnabled = false;
+let currentAccess = { role:'editor', editorName:'' };
 
 const DEPTS = [
   { key:'vocal', label:'Vocal' },
@@ -654,6 +656,40 @@ let pickerSearch = '';
 let storageOk = true;
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
+
+function isAdmin(){ return currentAccess.role === 'admin'; }
+function isChief(){ return currentAccess.role === 'chief'; }
+function canManageWork(){ return isAdmin() || isChief(); }
+function canDelete(){ return isAdmin(); }
+function canCompleteMovie(){ return isAdmin() || isChief(); }
+function canImport(){ return isAdmin(); }
+function canExport(){ return isAdmin() || isChief(); }
+function normalizeName(value){ return (value || '').trim().toLocaleLowerCase('pt-BR'); }
+function ownsEditorName(name){ return currentAccess.role === 'editor' && normalizeName(name) === normalizeName(currentAccess.editorName); }
+function canEditTask(editorName, field){
+  if(canManageWork()) return true;
+  return ownsEditorName(editorName) && ['inicio','entrega','status'].includes(field);
+}
+function readOnlyValue(value, className=''){
+  return `<div class="readonly-value ${className}">${esc(value) || '—'}</div>`;
+}
+async function loadAccess(user){
+  currentAccess = { role:'editor', editorName:'' };
+  if(!cloudEnabled || !supabaseClient || !user) return;
+  const { data, error } = await supabaseClient
+    .from('station_user_access')
+    .select('role, editor_name')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if(error){ console.error('Falha ao carregar perfil de acesso', error); return; }
+  if(data) currentAccess = { role:data.role || 'editor', editorName:data.editor_name || '' };
+}
+function applyAccessUi(){
+  const importBtn = document.getElementById('importBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  if(importBtn) importBtn.style.display = canImport() ? 'inline-block' : 'none';
+  if(exportBtn) exportBtn.style.display = canExport() ? 'inline-block' : 'none';
+}
 
 function blankLangRow(idioma){
   return { id: uid(), idioma: idioma, inicio:'', entrega:'', urgencia:'media', status:'pendente', revisor:'', statusRevisao:'andamento' };
@@ -885,6 +921,7 @@ function applyDeptTheme(){
 }
 
 function exportData(){
+  if(!canExport()) return;
   const blob = new Blob([JSON.stringify({ movies, completedMovies, activeMovieId: activeId }, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -898,6 +935,7 @@ function exportData(){
 }
 
 function importData(file){
+  if(!canImport()) return;
   if(!file) return;
   const reader = new FileReader();
   reader.onload = function(evt){
@@ -943,6 +981,7 @@ function loadTheme(){
 }
 
 function addMovie(){
+  if(!canManageWork()) return;
   const m = blankMovie();
   movies.unshift(m);
   activeId = m.id;
@@ -951,6 +990,7 @@ function addMovie(){
 }
 
 function deleteMovie(id){
+  if(!canDelete()) return;
   if(!confirm('Remover este filme e todos os dados associados (Vocal + Efeitos + Música)?')) return;
   movies = movies.filter(m=>m.id!==id);
   if(activeId===id) activeId = movies.length ? movies[0].id : null;
@@ -959,6 +999,7 @@ function deleteMovie(id){
 }
 
 function completeMovie(id){
+  if(!canCompleteMovie()) return;
   const movie = movies.find(m => m.id === id);
   if(!movie) return;
   if(!confirm('Marcar este filme como concluído? Ele sairá da lista de produção e será adicionado ao histórico.')) return;
@@ -984,6 +1025,7 @@ function completeMovie(id){
 }
 
 function addEditorRow(movieId){
+  if(!canManageWork()) return;
   const m = movies.find(m=>m.id===movieId);
   const arr = m.depts[activeDept].editors;
   arr.push(activeDept === 'vocal' ? blankVocalEditor(arr.length+1) : blankSimpleEditor(arr.length+1));
@@ -992,6 +1034,7 @@ function addEditorRow(movieId){
 }
 
 function removeEditorRow(movieId, editorId){
+  if(!canDelete()) return;
   const m = movies.find(m=>m.id===movieId);
   m.depts[activeDept].editors = m.depts[activeDept].editors.filter(e=>e.id!==editorId);
   saveData();
@@ -999,6 +1042,7 @@ function removeEditorRow(movieId, editorId){
 }
 
 function updateEditorName(movieId, editorId, value){
+  if(!canManageWork()) return;
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts.vocal.editors.find(e=>e.id===editorId);
   e.nome = value;
@@ -1006,6 +1050,7 @@ function updateEditorName(movieId, editorId, value){
 }
 
 function updateMovieField(movieId, field, value){
+  if(!isAdmin()) return;
   const m = movies.find(m=>m.id===movieId);
   m[field] = value;
   saveData();
@@ -1014,6 +1059,7 @@ function updateMovieField(movieId, field, value){
 function updateLangRowField(movieId, editorId, rowId, field, value){
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts.vocal.editors.find(e=>e.id===editorId);
+  if(!canEditTask(e.nome, field)) return;
   const row = e.idiomas.find(r=>r.id===rowId);
   row[field] = value;
   if(field==='status' && value==='concluido'){
@@ -1028,6 +1074,7 @@ function updateLangRowField(movieId, editorId, rowId, field, value){
 function updateSimpleEditorField(movieId, editorId, field, value){
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts[activeDept].editors.find(e=>e.id===editorId);
+  if(!canEditTask(e.nome, field)) return;
   e[field] = value;
   if(field==='status' && value==='concluido'){
     e.entrega = todayISO();
@@ -1047,6 +1094,7 @@ function todayISO(){
 }
 
 function removeLangRow(movieId, editorId, rowId){
+  if(!canDelete()) return;
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts.vocal.editors.find(e=>e.id===editorId);
   e.idiomas = e.idiomas.filter(r=>r.id!==rowId);
@@ -1055,6 +1103,7 @@ function removeLangRow(movieId, editorId, rowId){
 }
 
 function toggleLangPicker(editorId){
+  if(!canManageWork()) return;
   openPickerFor = (openPickerFor === editorId) ? null : editorId;
   pickerSearch = '';
   render();
@@ -1067,6 +1116,7 @@ function toggleLangPicker(editorId){
 }
 
 function addLanguageRow(movieId, editorId, lang){
+  if(!canManageWork()) return;
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts.vocal.editors.find(e=>e.id===editorId);
   if(!e.idiomas.some(r=>r.idioma===lang)){
@@ -1083,11 +1133,13 @@ function onPickerSearch(value){
 }
 
 function triggerPosterUpload(movieId){
+  if(!isAdmin()) return;
   const inp = document.getElementById('posterInput-'+movieId);
   if(inp) inp.click();
 }
 
 function handlePosterUpload(movieId, file){
+  if(!isAdmin()) return;
   if(!file) return;
   if(!/^image\/jpe?g$/i.test(file.type)){
     alert('Por favor selecione uma imagem no formato JPEG (.jpg ou .jpeg).');
@@ -1110,6 +1162,7 @@ function handlePosterUpload(movieId, file){
 }
 
 function removePoster(movieId, ev){
+  if(!isAdmin()) return;
   if(ev) ev.stopPropagation();
   const m = movies.find(m=>m.id===movieId);
   m.poster = '';
@@ -1193,7 +1246,7 @@ function renderMovieTabs(){
     return `<div class="movie-chip ${m.id===activeId?'active':''}" id="tab-${m.id}" onclick="selectMovie('${m.id}')">
       ${esc(m.nome) || 'Sem título'} <span class="count">${done}/${total}</span>
     </div>`;
-  }).join('') + `<button class="add-movie-btn" onclick="showProduction(); addMovie()">+ Novo Filme</button>
+  }).join('') + `${canManageWork() ? `<button class="add-movie-btn" onclick="showProduction(); addMovie()">+ Novo Filme</button>` : ''}
     <button class="history-btn ${currentView==='history'?'active':''}" onclick="showHistory()">Histórico de filmes concluídos</button>`;
 }
 
@@ -1270,6 +1323,7 @@ function syncTabName(id, value){
 }
 
 function render(){
+  applyAccessUi();
   renderMovieTabs();
   const content = document.getElementById('content');
   const deptWrap = document.getElementById('deptTabs');
@@ -1286,7 +1340,7 @@ function render(){
       <div class="empty">
         <h2>Nenhum filme cadastrado</h2>
         <p>Crie o primeiro filme para começar a distribuir o trabalho entre Vocal, Efeitos e Música.</p>
-        <button onclick="addMovie()">+ Novo Filme</button>
+        ${canManageWork() ? `<button onclick="addMovie()">+ Novo Filme</button>` : ''}
       </div>`;
     return;
   }
@@ -1313,7 +1367,7 @@ function render(){
           : simpleEditorsTableHtml(m.id, m.depts[activeDept].editors)}
       </div>
       <div class="panel-footer">
-        <button class="add-editor-btn" onclick="addEditorRow('${m.id}')">+ Adicionar editor</button>
+        ${canManageWork() ? `<button class="add-editor-btn" onclick="addEditorRow('${m.id}')">+ Adicionar editor</button>` : '<span></span>'}
         <span class="hint">Clique nos campos para editar — salvamento automático e sincronização pela conta</span>
       </div>
     </div>
@@ -1321,38 +1375,46 @@ function render(){
 }
 
 function movieHeaderHtml(m){
+  const poster = m.poster ? `<img src="${m.poster}" alt="Pôster do filme">` : `<span class="poster-plus">+</span>`;
+  const posterHtml = isAdmin()
+    ? `<div class="poster-upload" onclick="triggerPosterUpload('${m.id}')" title="${m.poster ? 'Clique para trocar o pôster' : 'Adicionar pôster (JPEG)'}">
+        ${poster}
+        ${m.poster ? `<button class="poster-remove" onclick="removePoster('${m.id}', event)" title="Remover pôster">✕</button>` : ''}
+        <input type="file" id="posterInput-${m.id}" accept="image/jpeg" style="display:none" onchange="handlePosterUpload('${m.id}', this.files[0])">
+      </div>`
+    : `<div class="poster-upload" title="Somente o administrador pode alterar o pôster">${poster}</div>`;
+  const titleHtml = isAdmin()
+    ? `<input type="text" placeholder="Ex: A Última Sessão" value="${esc(m.nome)}"
+        oninput="updateMovieField('${m.id}','nome', this.value); syncTabName('${m.id}', this.value)">`
+    : `<div class="readonly-value">${esc(m.nome) || 'Sem título'}</div>`;
   return `
     <div class="movie-header">
       <div class="movie-identity">
-        <div class="poster-upload" onclick="triggerPosterUpload('${m.id}')" title="${m.poster ? 'Clique para trocar o pôster' : 'Adicionar pôster (JPEG)'}">
-          ${m.poster ? `
-            <img src="${m.poster}" alt="Pôster do filme">
-            <button class="poster-remove" onclick="removePoster('${m.id}', event)" title="Remover pôster">✕</button>
-          ` : `<span class="poster-plus">+</span>`}
-          <input type="file" id="posterInput-${m.id}" accept="image/jpeg" style="display:none" onchange="handlePosterUpload('${m.id}', this.files[0])">
-        </div>
+        ${posterHtml}
         <div class="movie-title-field">
           <span class="field-label">Nome do Filme</span>
-          <input type="text" placeholder="Ex: A Última Sessão" value="${esc(m.nome)}"
-            oninput="updateMovieField('${m.id}','nome', this.value); syncTabName('${m.id}', this.value)">
+          ${titleHtml}
         </div>
       </div>
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <button class="del-movie-btn" onclick="deleteMovie('${m.id}')">Remover filme</button>
-        <button class="complete-movie-btn" onclick="completeMovie('${m.id}')">Filme concluído</button>
+        ${canDelete() ? `<button class="del-movie-btn" onclick="deleteMovie('${m.id}')">Remover filme</button>` : ''}
+        ${canCompleteMovie() ? `<button class="complete-movie-btn" onclick="completeMovie('${m.id}')">Filme concluído</button>` : ''}
       </div>
     </div>
   `;
 }
 
 function pathRowHtml(m){
+  const field = isAdmin()
+    ? `<input type="text" id="pathInput-${m.id}" placeholder="Ex: //servidor/projetos/filme_x/audio_bruto ou link do Drive"
+        value="${esc(m.caminho)}" oninput="updateMovieField('${m.id}','caminho', this.value)">`
+    : `<div class="readonly-path">${esc(m.caminho) || '—'}</div>`;
   return `
     <div class="path-row">
       <div class="path-field">
         <span class="field-label">Caminho para download dos arquivos</span>
         <div class="input-shell">
-          <input type="text" id="pathInput-${m.id}" placeholder="Ex: //servidor/projetos/filme_x/audio_bruto ou link do Drive"
-            value="${esc(m.caminho)}" oninput="updateMovieField('${m.id}','caminho', this.value)">
+          ${field}
           <button class="copy-btn" id="copyBtn-${m.id}" onclick="copyPath('${m.id}')">Copiar</button>
         </div>
       </div>
@@ -1417,6 +1479,10 @@ function stageProgressHtml(m, deptKey){
 
 function vocalEditorGroupHtml(movieId, e){
   const n = e.idiomas.length;
+  const editorName = canManageWork()
+    ? `<input class="editor-name-input" type="text" value="${esc(e.nome)}" placeholder="Nome do editor"
+        oninput="updateEditorName('${movieId}','${e.id}', this.value)">`
+    : `<div class="readonly-value">${esc(e.nome) || 'Sem nome'}</div>`;
 
   let popover = '';
   if(openPickerFor === e.id){
@@ -1448,12 +1514,11 @@ function vocalEditorGroupHtml(movieId, e){
   return `
     <div class="editor-group">
       <div class="editor-group-header">
-        <input class="editor-name-input" type="text" value="${esc(e.nome)}" placeholder="Nome do editor"
-          oninput="updateEditorName('${movieId}','${e.id}', this.value)">
+        ${editorName}
         <span class="lang-badge">${n} idioma${n===1?'':'s'}</span>
         <div class="spacer"></div>
-        <button class="add-lang-inline-btn" onclick="event.stopPropagation(); toggleLangPicker('${e.id}')">+ Adicionar idioma</button>
-        <button class="rm-editor-btn" onclick="removeEditorRow('${movieId}','${e.id}')">Remover editor</button>
+        ${canManageWork() ? `<button class="add-lang-inline-btn" onclick="event.stopPropagation(); toggleLangPicker('${e.id}')">+ Adicionar idioma</button>` : ''}
+        ${canDelete() ? `<button class="rm-editor-btn" onclick="removeEditorRow('${movieId}','${e.id}')">Remover editor</button>` : ''}
         ${popover}
       </div>
       ${rows}
@@ -1462,48 +1527,54 @@ function vocalEditorGroupHtml(movieId, e){
 }
 
 function vocalLangRowHtml(movieId, editorId, r, idx){
+  const m = movies.find(movie => movie.id === movieId);
+  const editor = m.depts.vocal.editors.find(item => item.id === editorId);
+  const dateInput = (field, value) => canEditTask(editor.nome, field)
+    ? `<input type="date" value="${esc(value)}" onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','${field}', this.value)">`
+    : readOnlyValue(value);
+  const statusInput = canEditTask(editor.nome, 'status')
+    ? `<select class="status-select" data-v="${r.status}" onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','status', this.value)">
+        <option value="pendente" ${r.status==='pendente'?'selected':''}>Pendente</option>
+        <option value="fazendo" ${r.status==='fazendo'?'selected':''}>Fazendo</option>
+        <option value="concluido" ${r.status==='concluido'?'selected':''}>Concluído</option>
+      </select>`
+    : readOnlyValue(r.status === 'concluido' ? 'Concluído' : r.status === 'fazendo' ? 'Fazendo' : 'Pendente');
+  const managerFields = canManageWork();
   return `
     <div class="grid-row grid-body-row">
       <div class="urg-bar ${r.urgencia}"></div>
       <div class="lang-name">${esc(r.idioma)}</div>
       <div class="lang-index">${idx+1}</div>
       <div class="cell">
-        <input type="date" value="${esc(r.inicio)}"
-          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','inicio', this.value)">
+        ${dateInput('inicio', r.inicio)}
       </div>
       <div class="cell">
-        <input type="date" value="${esc(r.entrega)}"
-          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','entrega', this.value)">
+        ${dateInput('entrega', r.entrega)}
       </div>
       <div class="cell">
-        <select class="urg-select" data-v="${r.urgencia}"
+        ${managerFields ? `<select class="urg-select" data-v="${r.urgencia}"
           onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','urgencia', this.value)">
           <option value="baixa" ${r.urgencia==='baixa'?'selected':''}>Baixa</option>
           <option value="media" ${r.urgencia==='media'?'selected':''}>Média</option>
           <option value="alta" ${r.urgencia==='alta'?'selected':''}>Alta</option>
-        </select>
+        </select>` : readOnlyValue(r.urgencia)}
       </div>
       <div class="cell">
-        <input type="text" class="revisor-input" placeholder="Nome do revisor" value="${esc(r.revisor)}"
-          oninput="updateLangRowField('${movieId}','${editorId}','${r.id}','revisor', this.value)">
+        ${managerFields ? `<input type="text" class="revisor-input" placeholder="Nome do revisor" value="${esc(r.revisor)}"
+          oninput="updateLangRowField('${movieId}','${editorId}','${r.id}','revisor', this.value)">` : readOnlyValue(r.revisor)}
       </div>
       <div class="cell">
-        <select class="revstatus-select" data-v="${r.statusRevisao}"
+        ${managerFields ? `<select class="revstatus-select" data-v="${r.statusRevisao}"
           onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','statusRevisao', this.value)">
           <option value="andamento" ${r.statusRevisao==='andamento'?'selected':''}>Em andamento</option>
           <option value="revisado" ${r.statusRevisao==='revisado'?'selected':''}>Revisado</option>
           <option value="erro" ${r.statusRevisao==='erro'?'selected':''}>Erro encontrado</option>
-        </select>
+        </select>` : readOnlyValue(r.statusRevisao)}
       </div>
       <div class="cell">
-        <select class="status-select" data-v="${r.status}"
-          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','status', this.value)">
-          <option value="pendente" ${r.status==='pendente'?'selected':''}>Pendente</option>
-          <option value="fazendo" ${r.status==='fazendo'?'selected':''}>Fazendo</option>
-          <option value="concluido" ${r.status==='concluido'?'selected':''}>Concluído</option>
-        </select>
+        ${statusInput}
       </div>
-      <button class="rm-row-btn" onclick="removeLangRow('${movieId}','${editorId}','${r.id}')" title="Remover idioma">✕</button>
+      ${canDelete() ? `<button class="rm-row-btn" onclick="removeLangRow('${movieId}','${editorId}','${r.id}')" title="Remover idioma">✕</button>` : '<span></span>'}
     </div>
   `;
 }
@@ -1527,38 +1598,44 @@ function simpleEditorsTableHtml(movieId, editors){
 }
 
 function simpleEditorRowHtml(movieId, e){
+  const editorName = canManageWork()
+    ? `<input type="text" class="editor-name-input inline" placeholder="Nome do editor" value="${esc(e.nome)}"
+        oninput="updateSimpleEditorField('${movieId}','${e.id}','nome', this.value)">`
+    : readOnlyValue(e.nome);
+  const dateInput = (field, value) => canEditTask(e.nome, field)
+    ? `<input type="date" value="${esc(value)}" onchange="updateSimpleEditorField('${movieId}','${e.id}','${field}', this.value)">`
+    : readOnlyValue(value);
+  const statusInput = canEditTask(e.nome, 'status')
+    ? `<select class="status-select" data-v="${e.status}" onchange="updateSimpleEditorField('${movieId}','${e.id}','status', this.value)">
+        <option value="pendente" ${e.status==='pendente'?'selected':''}>Pendente</option>
+        <option value="fazendo" ${e.status==='fazendo'?'selected':''}>Fazendo</option>
+        <option value="concluido" ${e.status==='concluido'?'selected':''}>Concluído</option>
+      </select>`
+    : readOnlyValue(e.status === 'concluido' ? 'Concluído' : e.status === 'fazendo' ? 'Fazendo' : 'Pendente');
   return `
     <div class="grid-row grid-body-row">
       <div class="urg-bar ${e.urgencia}"></div>
       <div class="cell">
-        <input type="text" class="editor-name-input inline" placeholder="Nome do editor" value="${esc(e.nome)}"
-          oninput="updateSimpleEditorField('${movieId}','${e.id}','nome', this.value)">
+        ${editorName}
       </div>
       <div class="cell">
-        <input type="date" value="${esc(e.inicio)}"
-          onchange="updateSimpleEditorField('${movieId}','${e.id}','inicio', this.value)">
+        ${dateInput('inicio', e.inicio)}
       </div>
       <div class="cell">
-        <input type="date" value="${esc(e.entrega)}"
-          onchange="updateSimpleEditorField('${movieId}','${e.id}','entrega', this.value)">
+        ${dateInput('entrega', e.entrega)}
       </div>
       <div class="cell">
-        <select class="urg-select" data-v="${e.urgencia}"
+        ${canManageWork() ? `<select class="urg-select" data-v="${e.urgencia}"
           onchange="updateSimpleEditorField('${movieId}','${e.id}','urgencia', this.value)">
           <option value="baixa" ${e.urgencia==='baixa'?'selected':''}>Baixa</option>
           <option value="media" ${e.urgencia==='media'?'selected':''}>Média</option>
           <option value="alta" ${e.urgencia==='alta'?'selected':''}>Alta</option>
-        </select>
+        </select>` : readOnlyValue(e.urgencia)}
       </div>
       <div class="cell">
-        <select class="status-select" data-v="${e.status}"
-          onchange="updateSimpleEditorField('${movieId}','${e.id}','status', this.value)">
-          <option value="pendente" ${e.status==='pendente'?'selected':''}>Pendente</option>
-          <option value="fazendo" ${e.status==='fazendo'?'selected':''}>Fazendo</option>
-          <option value="concluido" ${e.status==='concluido'?'selected':''}>Concluído</option>
-        </select>
+        ${statusInput}
       </div>
-      <button class="rm-row-btn" onclick="removeEditorRow('${movieId}','${e.id}')" title="Remover editor">✕</button>
+      ${canDelete() ? `<button class="rm-row-btn" onclick="removeEditorRow('${movieId}','${e.id}')" title="Remover editor">✕</button>` : '<span></span>'}
     </div>
   `;
 }
@@ -1579,6 +1656,7 @@ async function initSupabase(){
 
 async function onAuthenticated(user){
   currentUser = user;
+  await loadAccess(user);
   const loaded = await loadCloudData();
   if(!loaded) saveCloudData();
   document.getElementById('authOverlay').style.display = 'none';
@@ -1608,7 +1686,7 @@ async function signUp(){
 
 async function signOut(){
   if(cloudEnabled && supabaseClient) await supabaseClient.auth.signOut();
-  currentUser=null; movies=[]; activeId=null;
+  currentUser=null; currentAccess={ role:'editor', editorName:'' }; movies=[]; activeId=null;
   document.getElementById('authOverlay').style.display='flex';
   document.getElementById('logoutBtn').style.display='none';
   document.getElementById('userSession').textContent='';

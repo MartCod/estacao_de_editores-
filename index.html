@@ -191,6 +191,24 @@
     color: var(--text-dim); cursor:pointer;
   }
   .add-movie-btn:hover{ border-color: var(--teal); color: var(--teal); }
+  .history-btn{
+    font-family: var(--font-body); font-weight:700; font-size: 13.5px;
+    padding: 9px 16px; border-radius: 999px;
+    background: transparent; border:1px solid var(--line);
+    color: var(--text-dim); cursor:pointer;
+  }
+  .history-btn:hover, .history-btn.active{ border-color: var(--amber); color: var(--amber); background:var(--amber-dim); }
+
+  /* ---------- HISTÓRICO DE FILMES CONCLUÍDOS ---------- */
+  .history-panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .history-heading{ padding:22px 24px 16px; border-bottom:1px solid var(--line); }
+  .history-heading h2{ margin:0 0 5px; font-family:var(--font-display); font-size:20px; }
+  .history-heading p{ margin:0; color:var(--text-dim); font-size:13px; }
+  .history-table{ width:100%; border-collapse:collapse; min-width:720px; }
+  .history-table th, .history-table td{ padding:14px 16px; text-align:left; border-bottom:1px solid var(--line); font-size:13px; }
+  .history-table th{ color:var(--text-dim); font-size:11px; text-transform:uppercase; letter-spacing:.5px; }
+  .history-table tr:last-child td{ border-bottom:none; }
+  .history-empty{ padding:34px 24px; color:var(--text-dim); text-align:center; }
 
   /* ---------- EMPTY STATE ---------- */
   .empty{
@@ -620,8 +638,10 @@ const LANGUAGES = [...LANGUAGES_RAW].sort((a, b) => {
    ========================================================================== */
 
 let movies = [];
+let completedMovies = [];
 let activeId = null;
 let activeDept = 'vocal';
+let currentView = 'production';
 let openPickerFor = null;
 let pickerSearch = '';
 let storageOk = true;
@@ -764,6 +784,7 @@ function loadData(){
     if(raw){
       const parsed = JSON.parse(raw);
       movies = Array.isArray(parsed.movies) ? parsed.movies : [];
+      completedMovies = Array.isArray(parsed.completedMovies) ? parsed.completedMovies : [];
       movies.forEach(ensureMovieShape);
       activeId = parsed.activeMovieId || (movies[0] && movies[0].id) || null;
     }else{
@@ -783,6 +804,7 @@ function loadData(){
     }
   }catch(e){
     movies = [];
+    completedMovies = [];
     activeId = null;
   }
   if(!activeId && movies.length) activeId = movies[0].id;
@@ -793,7 +815,7 @@ function loadData(){
 
 function saveData(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, activeMovieId: activeId }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, completedMovies, activeMovieId: activeId }));
     storageOk = true;
   }catch(e){
     console.error('Falha ao salvar localmente', e);
@@ -811,7 +833,7 @@ function scheduleCloudSave(){
 async function saveCloudData(){
   if(!cloudEnabled || !supabaseClient || !currentUser) return;
   try{
-    const payload = { movies, activeMovieId: activeId, activeDept };
+    const payload = { movies, completedMovies, activeMovieId: activeId, activeDept };
     const { error } = await supabaseClient.from(CLOUD_TABLE).upsert({
       id: CLOUD_ROW_ID,
       payload,
@@ -831,10 +853,11 @@ async function loadCloudData(){
   if(data && data.payload){
     const payload = data.payload;
     movies = Array.isArray(payload.movies) ? payload.movies : [];
+    completedMovies = Array.isArray(payload.completedMovies) ? payload.completedMovies : [];
     movies.forEach(ensureMovieShape);
     activeId = payload.activeMovieId || (movies[0] && movies[0].id) || null;
     activeDept = payload.activeDept || 'vocal';
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, activeMovieId: activeId })); }catch(e){}
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, completedMovies, activeMovieId: activeId })); }catch(e){}
     return true;
   }
   return false;
@@ -855,7 +878,7 @@ function applyDeptTheme(){
 }
 
 function exportData(){
-  const blob = new Blob([JSON.stringify({ movies, activeMovieId: activeId }, null, 2)], { type:'application/json' });
+  const blob = new Blob([JSON.stringify({ movies, completedMovies, activeMovieId: activeId }, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const date = new Date().toISOString().slice(0,10);
@@ -879,6 +902,7 @@ function importData(file){
         activeId = migrated.activeMovieId;
       }else if(parsed && Array.isArray(parsed.movies)){
         movies = parsed.movies;
+        completedMovies = Array.isArray(parsed.completedMovies) ? parsed.completedMovies : [];
         movies.forEach(ensureMovieShape);
         activeId = parsed.activeMovieId || (movies[0] && movies[0].id) || null;
       }else if(parsed && (parsed.vocal || parsed.efeitos || parsed.musica)){
@@ -923,6 +947,31 @@ function deleteMovie(id){
   if(!confirm('Remover este filme e todos os dados associados (Vocal + Efeitos + Música)?')) return;
   movies = movies.filter(m=>m.id!==id);
   if(activeId===id) activeId = movies.length ? movies[0].id : null;
+  saveData();
+  render();
+}
+
+function completeMovie(id){
+  const movie = movies.find(m => m.id === id);
+  if(!movie) return;
+  if(!confirm('Marcar este filme como concluído? Ele sairá da lista de produção e será adicionado ao histórico.')) return;
+
+  const entries = movie.depts.vocal.editors.flatMap(editor =>
+    editor.idiomas.map(row => ({
+      idioma: row.idioma || 'Não informado',
+      editor: editor.nome || 'Não informado',
+      revisor: row.revisor || 'Não informado'
+    }))
+  );
+  completedMovies.unshift({
+    id: uid(),
+    nome: movie.nome || 'Sem título',
+    concluidoEm: new Date().toISOString(),
+    entries: entries.length ? entries : [{ idioma:'Não informado', editor:'Não informado', revisor:'Não informado' }]
+  });
+  movies = movies.filter(m => m.id !== id);
+  if(activeId === id) activeId = movies.length ? movies[0].id : null;
+  currentView = 'history';
   saveData();
   render();
 }
@@ -1137,7 +1186,51 @@ function renderMovieTabs(){
     return `<div class="movie-chip ${m.id===activeId?'active':''}" id="tab-${m.id}" onclick="selectMovie('${m.id}')">
       ${esc(m.nome) || 'Sem título'} <span class="count">${done}/${total}</span>
     </div>`;
-  }).join('') + `<button class="add-movie-btn" onclick="addMovie()">+ Novo Filme</button>`;
+  }).join('') + `<button class="add-movie-btn" onclick="showProduction(); addMovie()">+ Novo Filme</button>
+    <button class="history-btn ${currentView==='history'?'active':''}" onclick="showHistory()">Histórico de filmes concluídos</button>`;
+}
+
+function showProduction(){
+  currentView = 'production';
+  render();
+}
+
+function showHistory(){
+  currentView = 'history';
+  render();
+}
+
+function formatCompletionDate(value){
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Data não informada' : date.toLocaleDateString('pt-BR');
+}
+
+function historyRows(){
+  return completedMovies.flatMap(movie => {
+    const entries = Array.isArray(movie.entries) && movie.entries.length ? movie.entries : [{ idioma:'Não informado', editor:'Não informado', revisor:'Não informado' }];
+    return entries.map(entry => `
+      <tr>
+        <td>${esc(movie.nome) || 'Sem título'}</td>
+        <td>${esc(entry.idioma) || 'Não informado'}</td>
+        <td>${esc(entry.editor) || 'Não informado'}</td>
+        <td>${esc(entry.revisor) || 'Não informado'}</td>
+        <td>${formatCompletionDate(movie.concluidoEm)}</td>
+      </tr>`);
+  }).join('');
+}
+
+function historyHtml(){
+  const rows = historyRows();
+  return `
+    <section class="history-panel">
+      <div class="history-heading">
+        <h2>Histórico de filmes concluídos</h2>
+        <p>Filmes removidos da produção após a conclusão.</p>
+      </div>
+      ${rows ? `<div class="table-scroll"><table class="history-table"><thead><tr>
+        <th>Filme</th><th>Idioma</th><th>Editor responsável</th><th>Revisor</th><th>Data de conclusão</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>` : `<div class="history-empty">Ainda não há filmes concluídos.</div>`}
+    </section>`;
 }
 
 function renderDeptTabs(m){
@@ -1158,6 +1251,7 @@ function renderDeptTabs(m){
 
 function selectMovie(id){
   activeId = id;
+  currentView = 'production';
   openPickerFor = null;
   saveData();
   render();
@@ -1172,6 +1266,12 @@ function render(){
   renderMovieTabs();
   const content = document.getElementById('content');
   const deptWrap = document.getElementById('deptTabs');
+
+  if(currentView === 'history'){
+    deptWrap.innerHTML = '';
+    content.innerHTML = historyHtml();
+    return;
+  }
 
   if(!movies.length){
     deptWrap.innerHTML = '';
@@ -1230,7 +1330,10 @@ function movieHeaderHtml(m){
             oninput="updateMovieField('${m.id}','nome', this.value); syncTabName('${m.id}', this.value)">
         </div>
       </div>
-      <button class="del-movie-btn" onclick="deleteMovie('${m.id}')">Remover filme</button>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button class="del-movie-btn" onclick="deleteMovie('${m.id}')">Remover filme</button>
+        <button class="del-movie-btn" onclick="completeMovie('${m.id}')">Filme concluído</button>
+      </div>
     </div>
   `;
 }

@@ -292,6 +292,19 @@
     display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;
   }
   .path-field{ flex: 1 1 380px; }
+  .path-audio-field{
+  margin-top: 14px;
+}
+
+.audio-path-label{
+  display: block;
+  margin-bottom: 7px;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-faint);
+  font-weight: 700;
+}
   .path-field .input-shell{
     display:flex; align-items:center; gap:8px;
     background: var(--bg); border: 1px solid var(--line); border-radius: 9px;
@@ -672,7 +685,11 @@ function blankMovie(){
     musicaEditors.push(blankSimpleEditor(i));
   }
   return {
-    id: uid(), nome:'', caminho:'', poster:'',
+  id: uid(),
+nome:'',
+caminho51:'',
+caminho20:'',
+poster:'',
     depts: {
       vocal:   { editors: vocalEditors },
       efeitos: { editors: efeitosEditors },
@@ -702,6 +719,13 @@ function ensureMovieShape(m){
       if(!e.status) e.status = 'pendente';
     });
   });
+ if (m.caminho51 === undefined) {
+  m.caminho51 = m.caminho || '';
+}
+
+if (m.caminho20 === undefined) {
+  m.caminho20 = '';
+}
   return m;
 }
 
@@ -1116,14 +1140,25 @@ function removePoster(movieId, ev){
   saveData();
   render();
 }
+function copyPath(movieId, field, buttonId){
+  const m = movies.find(m => m.id === movieId);
+  const value = m ? (m[field] || '') : '';
 
-function copyPath(movieId){
-  const m = movies.find(m=>m.id===movieId);
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(m.caminho || '').catch(()=>{});
+    navigator.clipboard.writeText(value).catch(()=>{});
   }
-  const btn = document.getElementById('copyBtn-'+movieId);
-  if(btn){ const old = btn.textContent; btn.textContent = 'Copiado!'; setTimeout(()=>btn.textContent=old, 1200); }
+
+  const btn = document.getElementById(buttonId);
+
+  if(btn){
+    const old = btn.textContent;
+    btn.textContent = 'Copiado!';
+
+    setTimeout(() => {
+      btn.textContent = old;
+    }, 1200);
+  }
+}
 }
 
 function esc(s){
@@ -1349,12 +1384,53 @@ function pathRowHtml(m){
   return `
     <div class="path-row">
       <div class="path-field">
+
         <span class="field-label">Caminho para download dos arquivos</span>
-        <div class="input-shell">
-          <input type="text" id="pathInput-${m.id}" placeholder="Ex: //servidor/projetos/filme_x/audio_bruto ou link do Drive"
-            value="${esc(m.caminho)}" oninput="updateMovieField('${m.id}','caminho', this.value)">
-          <button class="copy-btn" id="copyBtn-${m.id}" onclick="copyPath('${m.id}')">Copiar</button>
+
+        <div class="path-audio-field">
+          <span class="audio-path-label">ÁUDIO 5.1</span>
+
+          <div class="input-shell">
+            <input
+              type="text"
+              id="path51Input-${m.id}"
+              placeholder="Caminho dos áudios 5.1"
+              value="${esc(m.caminho51 || '')}"
+              oninput="updateMovieField('${m.id}', 'caminho51', this.value)"
+            >
+
+            <button
+              class="copy-btn"
+              id="copyBtn51-${m.id}"
+              onclick="copyPath('${m.id}', 'caminho51', 'copyBtn51-${m.id}')"
+            >
+              Copiar
+            </button>
+          </div>
         </div>
+
+        <div class="path-audio-field">
+          <span class="audio-path-label">ÁUDIO 2.0</span>
+
+          <div class="input-shell">
+            <input
+              type="text"
+              id="path20Input-${m.id}"
+              placeholder="Caminho dos áudios 2.0"
+              value="${esc(m.caminho20 || '')}"
+              oninput="updateMovieField('${m.id}', 'caminho20', this.value)"
+            >
+
+            <button
+              class="copy-btn"
+              id="copyBtn20-${m.id}"
+              onclick="copyPath('${m.id}', 'caminho20', 'copyBtn20-${m.id}')"
+            >
+              Copiar
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   `;

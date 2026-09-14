@@ -58,6 +58,7 @@
   body.theme-light select.status-select[data-v="pendente"]{ color:#4b5563; }
   body.theme-light select.status-select[data-v="fazendo"]{ color:#1d4ed8; }
   body.theme-light select.status-select[data-v="concluido"]{ color:#15803d; }
+  body.theme-light select.revstatus-select[data-v="pendente"]{ color:#4b5563; }
   body.theme-light select.revstatus-select[data-v="andamento"]{ color:#1d4ed8; }
   body.theme-light select.revstatus-select[data-v="revisado"]{ color:#15803d; }
   body.theme-light select.revstatus-select[data-v="erro"]{ color:#a83214; }
@@ -443,6 +444,7 @@
   select.status-select[data-v="pendente"]{ background-color: var(--gray-dim); color:#c4c9d2; }
   select.status-select[data-v="fazendo"]{ background-color: var(--blue-dim); color:#a9c4ff; }
   select.status-select[data-v="concluido"]{ background-color: var(--green-dim); color:#a2edbe; }
+  select.revstatus-select[data-v="pendente"]{ background-color: var(--gray-dim); color:#c4c9d2; }
   select.revstatus-select[data-v="andamento"]{ background-color: var(--blue-dim); color:#a9c4ff; }
   select.revstatus-select[data-v="revisado"]{ background-color: var(--green-dim); color:#a2edbe; }
   select.revstatus-select[data-v="erro"]{ background-color: var(--red-dim); color:#ff9d7a; }
@@ -669,7 +671,7 @@ let storageOk = true;
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
 function blankLangRow(idioma){
-  return { id: uid(), idioma: idioma, inicio:'', entrega:'', urgencia:'media', status:'pendente', revisor:'', statusRevisao:'andamento' };
+  return { id: uid(), idioma: idioma, inicio:'', entrega:'', urgencia:'media', status:'pendente', revisor:'', statusRevisao:'pendente' };
 }
 function blankVocalEditor(n){
   return { id: uid(), nome: 'Editor ' + n, idiomas: [] };
@@ -766,7 +768,7 @@ function migrateV2ToV3(v2){
           idiomas: (e.idiomas || []).map(r => ({
             id: r.id || uid(), idioma: r.idioma, inicio: r.inicio || '', entrega: r.entrega || '',
             urgencia: r.urgencia || 'media', status: r.status || 'pendente',
-            revisor: r.revisor || '', statusRevisao: r.statusRevisao || 'andamento'
+            revisor: r.revisor || '', statusRevisao: r.statusRevisao || 'pendente'
           }))
         })) };
       } else {
@@ -1565,6 +1567,7 @@ function vocalLangRowHtml(movieId, editorId, r, idx){
       <div class="cell">
         <select class="revstatus-select" data-v="${r.statusRevisao}"
           onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','statusRevisao', this.value)">
+          <option value="pendente" ${r.statusRevisao==='pendente'?'selected':''}>Pendente</option>
           <option value="andamento" ${r.statusRevisao==='andamento'?'selected':''}>Em andamento</option>
           <option value="revisado" ${r.statusRevisao==='revisado'?'selected':''}>Revisado</option>
           <option value="erro" ${r.statusRevisao==='erro'?'selected':''}>Erro encontrado</option>

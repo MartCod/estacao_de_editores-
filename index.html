@@ -336,6 +336,37 @@
   .progress-seg.pendente{ background: repeating-linear-gradient(135deg, #3a3f4a 0 6px, #333842 6px 12px); }
   .progress-seg.fazendo{ background: linear-gradient(180deg,#ffc35c,#f2a93b); }
   .progress-seg.concluido{ background: linear-gradient(180deg,#4fe08b,#2fb968); }
+  .progress-seg.review-pendente{
+  background: repeating-linear-gradient(135deg,#3a3f4a 0 6px,#333842 6px 12px);
+}
+
+.progress-seg.review-andamento{
+  background: linear-gradient(180deg,#ffc35c,#f2a93b);
+}
+
+.progress-seg.review-revisado{
+  background: linear-gradient(180deg,#4fe08b,#2fb968);
+}
+
+.progress-seg.review-erro{
+  background: linear-gradient(180deg,#ff8f70,#e65c3d);
+}
+
+.progress-legend .sw.review-pendente{
+  background:#3a3f4a;
+}
+
+.progress-legend .sw.review-andamento{
+  background:#f2a93b;
+}
+
+.progress-legend .sw.review-revisado{
+  background:#39c879;
+}
+
+.progress-legend .sw.review-erro{
+  background:#e65c3d;
+}
   .progress-legend{ display:flex; gap:16px; margin-top:9px; flex-wrap:wrap; }
   .progress-legend .leg{ font-size:11.5px; color: var(--text-dim); display:flex; align-items:center; gap:6px; font-weight:600;}
   .progress-legend .sw{ width:9px; height:9px; border-radius:3px; }
@@ -1343,6 +1374,7 @@ function render(){
       ${pathRowHtml(m)}
       ${overallProgressHtml(stagePct, overallPct)}
       ${stageProgressHtml(m, activeDept)}
+      ${activeDept === 'vocal' ? reviewProgressHtml(m) : ''}
       <div class="editors-wrap">
         ${activeDept === 'vocal'
           ? m.depts.vocal.editors.map(e => vocalEditorGroupHtml(m.id, e)).join('')
@@ -1489,7 +1521,52 @@ function stageProgressHtml(m, deptKey){
     </div>
   `;
 }
+function reviewProgressHtml(m){
+  const rows = m.depts.vocal.editors.flatMap(e => e.idiomas);
 
+  const counts = {
+    pendente: 0,
+    andamento: 0,
+    revisado: 0,
+    erro: 0
+  };
+
+  rows.forEach(r => {
+    if(counts[r.statusRevisao] !== undefined){
+      counts[r.statusRevisao]++;
+    }
+  });
+
+  const total = rows.length || 1;
+
+  const pctPendente = Math.round(counts.pendente / total * 100);
+  const pctAndamento = Math.round(counts.andamento / total * 100);
+  const pctRevisado = Math.round(counts.revisado / total * 100);
+  const pctErro = Math.round(counts.erro / total * 100);
+
+  return `
+    <div class="progress-block review-progress-block">
+      <div class="progress-top">
+        <span class="field-label">Progresso da revisão dos vocais</span>
+        <span class="progress-total">${counts.revisado}/${rows.length} revisões concluídas</span>
+      </div>
+
+      <div class="progress-track">
+        ${pctPendente>0?`<div class="progress-seg review-pendente" style="width:${pctPendente}%"></div>`:''}
+        ${pctAndamento>0?`<div class="progress-seg review-andamento" style="width:${pctAndamento}%"></div>`:''}
+        ${pctRevisado>0?`<div class="progress-seg review-revisado" style="width:${pctRevisado}%"></div>`:''}
+        ${pctErro>0?`<div class="progress-seg review-erro" style="width:${pctErro}%"></div>`:''}
+      </div>
+
+      <div class="progress-legend">
+        <div class="leg"><span class="sw review-pendente"></span>Pendente — ${pctPendente}%</div>
+        <div class="leg"><span class="sw review-andamento"></span>Em andamento — ${pctAndamento}%</div>
+        <div class="leg"><span class="sw review-revisado"></span>Revisado — ${pctRevisado}%</div>
+        <div class="leg"><span class="sw review-erro"></span>Erro encontrado — ${pctErro}%</div>
+      </div>
+    </div>
+  `;
+}
 /* ---------- ETAPA VOCAL (por idioma, com revisor) ---------- */
 
 function vocalEditorGroupHtml(movieId, e){

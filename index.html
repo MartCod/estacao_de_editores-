@@ -58,6 +58,7 @@
   body.theme-light select.status-select[data-v="pendente"]{ color:#4b5563; }
   body.theme-light select.status-select[data-v="fazendo"]{ color:#1d4ed8; }
   body.theme-light select.status-select[data-v="concluido"]{ color:#15803d; }
+  body.theme-light select.revstatus-select[data-v="pendente"]{ color:#4b5563; }
   body.theme-light select.revstatus-select[data-v="andamento"]{ color:#1d4ed8; }
   body.theme-light select.revstatus-select[data-v="revisado"]{ color:#15803d; }
   body.theme-light select.revstatus-select[data-v="erro"]{ color:#a83214; }
@@ -83,7 +84,7 @@
     padding: 28px 20px 80px;
     transition: background .2s ease, color .2s ease;
   }
-  .wrap{ max-width: 1400px; margin: 0 auto; }
+  .wrap{ max-width: 1600px; margin: 0 auto; }
 
   /* ---------- LAYOUT GERAL: CONTEÚDO + BARRA LATERAL DE ABAS ---------- */
   .station-layout{ display:flex; align-items:flex-start; gap:26px; }
@@ -293,6 +294,19 @@
     display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;
   }
   .path-field{ flex: 1 1 380px; }
+  .path-audio-field{
+  margin-top: 14px;
+}
+
+.audio-path-label{
+  display: block;
+  margin-bottom: 7px;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-faint);
+  font-weight: 700;
+}
   .path-field .input-shell{
     display:flex; align-items:center; gap:8px;
     background: var(--bg); border: 1px solid var(--line); border-radius: 9px;
@@ -323,6 +337,37 @@
   .progress-seg.pendente{ background: repeating-linear-gradient(135deg, #3a3f4a 0 6px, #333842 6px 12px); }
   .progress-seg.fazendo{ background: linear-gradient(180deg,#ffc35c,#f2a93b); }
   .progress-seg.concluido{ background: linear-gradient(180deg,#4fe08b,#2fb968); }
+  .progress-seg.review-pendente{
+  background: repeating-linear-gradient(135deg,#3a3f4a 0 6px,#333842 6px 12px);
+}
+
+.progress-seg.review-andamento{
+  background: linear-gradient(180deg,#ffc35c,#f2a93b);
+}
+
+.progress-seg.review-revisado{
+  background: linear-gradient(180deg,#4fe08b,#2fb968);
+}
+
+.progress-seg.review-erro{
+  background: linear-gradient(180deg,#ff8f70,#e65c3d);
+}
+
+.progress-legend .sw.review-pendente{
+  background:#3a3f4a;
+}
+
+.progress-legend .sw.review-andamento{
+  background:#f2a93b;
+}
+
+.progress-legend .sw.review-revisado{
+  background:#39c879;
+}
+
+.progress-legend .sw.review-erro{
+  background:#e65c3d;
+}
   .progress-legend{ display:flex; gap:16px; margin-top:9px; flex-wrap:wrap; }
   .progress-legend .leg{ font-size:11.5px; color: var(--text-dim); display:flex; align-items:center; gap:6px; font-weight:600;}
   .progress-legend .sw{ width:9px; height:9px; border-radius:3px; }
@@ -431,6 +476,7 @@
   select.status-select[data-v="pendente"]{ background-color: var(--gray-dim); color:#c4c9d2; }
   select.status-select[data-v="fazendo"]{ background-color: var(--blue-dim); color:#a9c4ff; }
   select.status-select[data-v="concluido"]{ background-color: var(--green-dim); color:#a2edbe; }
+  select.revstatus-select[data-v="pendente"]{ background-color: var(--gray-dim); color:#c4c9d2; }
   select.revstatus-select[data-v="andamento"]{ background-color: var(--blue-dim); color:#a9c4ff; }
   select.revstatus-select[data-v="revisado"]{ background-color: var(--green-dim); color:#a2edbe; }
   select.revstatus-select[data-v="erro"]{ background-color: var(--red-dim); color:#ff9d7a; }
@@ -692,7 +738,7 @@ function applyAccessUi(){
 }
 
 function blankLangRow(idioma){
-  return { id: uid(), idioma: idioma, inicio:'', entrega:'', urgencia:'media', status:'pendente', revisor:'', statusRevisao:'andamento' };
+  return { id: uid(), idioma: idioma, inicio:'', entrega:'', urgencia:'media', status:'pendente', revisor:'', statusRevisao:'pendente' };
 }
 function blankVocalEditor(n){
   return { id: uid(), nome: 'Editor ' + n, idiomas: [] };
@@ -708,7 +754,11 @@ function blankMovie(){
     musicaEditors.push(blankSimpleEditor(i));
   }
   return {
-    id: uid(), nome:'', caminho:'', poster:'',
+  id: uid(),
+nome:'',
+caminho51:'',
+caminho20:'',
+poster:'',
     depts: {
       vocal:   { editors: vocalEditors },
       efeitos: { editors: efeitosEditors },
@@ -738,6 +788,13 @@ function ensureMovieShape(m){
       if(!e.status) e.status = 'pendente';
     });
   });
+ if (m.caminho51 === undefined) {
+  m.caminho51 = m.caminho || '';
+}
+
+if (m.caminho20 === undefined) {
+  m.caminho20 = '';
+}
   return m;
 }
 
@@ -778,7 +835,7 @@ function migrateV2ToV3(v2){
           idiomas: (e.idiomas || []).map(r => ({
             id: r.id || uid(), idioma: r.idioma, inicio: r.inicio || '', entrega: r.entrega || '',
             urgencia: r.urgencia || 'media', status: r.status || 'pendente',
-            revisor: r.revisor || '', statusRevisao: r.statusRevisao || 'andamento'
+            revisor: r.revisor || '', statusRevisao: r.statusRevisao || 'pendente'
           }))
         })) };
       } else {
@@ -1169,14 +1226,24 @@ function removePoster(movieId, ev){
   saveData();
   render();
 }
+function copyPath(movieId, field, buttonId){
+  const m = movies.find(m => m.id === movieId);
+  const value = m ? (m[field] || '') : '';
 
-function copyPath(movieId){
-  const m = movies.find(m=>m.id===movieId);
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(m.caminho || '').catch(()=>{});
+    navigator.clipboard.writeText(value).catch(()=>{});
   }
-  const btn = document.getElementById('copyBtn-'+movieId);
-  if(btn){ const old = btn.textContent; btn.textContent = 'Copiado!'; setTimeout(()=>btn.textContent=old, 1200); }
+
+  const btn = document.getElementById(buttonId);
+
+  if(btn){
+    const old = btn.textContent;
+    btn.textContent = 'Copiado!';
+
+    setTimeout(() => {
+      btn.textContent = old;
+    }, 1200);
+  }
 }
 
 function esc(s){
@@ -1361,6 +1428,7 @@ function render(){
       ${pathRowHtml(m)}
       ${overallProgressHtml(stagePct, overallPct)}
       ${stageProgressHtml(m, activeDept)}
+      ${activeDept === 'vocal' ? reviewProgressHtml(m) : ''}
       <div class="editors-wrap">
         ${activeDept === 'vocal'
           ? m.depts.vocal.editors.map(e => vocalEditorGroupHtml(m.id, e)).join('')
@@ -1412,11 +1480,53 @@ function pathRowHtml(m){
   return `
     <div class="path-row">
       <div class="path-field">
+
         <span class="field-label">Caminho para download dos arquivos</span>
-        <div class="input-shell">
-          ${field}
-          <button class="copy-btn" id="copyBtn-${m.id}" onclick="copyPath('${m.id}')">Copiar</button>
+
+        <div class="path-audio-field">
+          <span class="audio-path-label">ÁUDIO 5.1</span>
+
+          <div class="input-shell">
+            <input
+              type="text"
+              id="path51Input-${m.id}"
+              placeholder="Caminho dos áudios 5.1"
+              value="${esc(m.caminho51 || '')}"
+              oninput="updateMovieField('${m.id}', 'caminho51', this.value)"
+            >
+
+            <button
+              class="copy-btn"
+              id="copyBtn51-${m.id}"
+              onclick="copyPath('${m.id}', 'caminho51', 'copyBtn51-${m.id}')"
+            >
+              Copiar
+            </button>
+          </div>
         </div>
+
+        <div class="path-audio-field">
+          <span class="audio-path-label">ÁUDIO 2.0</span>
+
+          <div class="input-shell">
+            <input
+              type="text"
+              id="path20Input-${m.id}"
+              placeholder="Caminho dos áudios 2.0"
+              value="${esc(m.caminho20 || '')}"
+              oninput="updateMovieField('${m.id}', 'caminho20', this.value)"
+            >
+
+            <button
+              class="copy-btn"
+              id="copyBtn20-${m.id}"
+              onclick="copyPath('${m.id}', 'caminho20', 'copyBtn20-${m.id}')"
+            >
+              Copiar
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   `;
@@ -1474,7 +1584,52 @@ function stageProgressHtml(m, deptKey){
     </div>
   `;
 }
+function reviewProgressHtml(m){
+  const rows = m.depts.vocal.editors.flatMap(e => e.idiomas);
 
+  const counts = {
+    pendente: 0,
+    andamento: 0,
+    revisado: 0,
+    erro: 0
+  };
+
+  rows.forEach(r => {
+    if(counts[r.statusRevisao] !== undefined){
+      counts[r.statusRevisao]++;
+    }
+  });
+
+  const total = rows.length || 1;
+
+  const pctPendente = Math.round(counts.pendente / total * 100);
+  const pctAndamento = Math.round(counts.andamento / total * 100);
+  const pctRevisado = Math.round(counts.revisado / total * 100);
+  const pctErro = Math.round(counts.erro / total * 100);
+
+  return `
+    <div class="progress-block review-progress-block">
+      <div class="progress-top">
+        <span class="field-label">Progresso da Revisão</span>
+        <span class="progress-total">${counts.revisado}/${rows.length} revisões concluídas</span>
+      </div>
+
+      <div class="progress-track">
+        ${pctPendente>0?`<div class="progress-seg review-pendente" style="width:${pctPendente}%"></div>`:''}
+        ${pctAndamento>0?`<div class="progress-seg review-andamento" style="width:${pctAndamento}%"></div>`:''}
+        ${pctRevisado>0?`<div class="progress-seg review-revisado" style="width:${pctRevisado}%"></div>`:''}
+        ${pctErro>0?`<div class="progress-seg review-erro" style="width:${pctErro}%"></div>`:''}
+      </div>
+
+      <div class="progress-legend">
+        <div class="leg"><span class="sw review-pendente"></span>Pendente — ${pctPendente}%</div>
+        <div class="leg"><span class="sw review-andamento"></span>Em andamento — ${pctAndamento}%</div>
+        <div class="leg"><span class="sw review-revisado"></span>Revisado — ${pctRevisado}%</div>
+        <div class="leg"><span class="sw review-erro"></span>Erro encontrado — ${pctErro}%</div>
+      </div>
+    </div>
+  `;
+}
 /* ---------- ETAPA VOCAL (por idioma, com revisor) ---------- */
 
 function vocalEditorGroupHtml(movieId, e){
@@ -1566,6 +1721,7 @@ function vocalLangRowHtml(movieId, editorId, r, idx){
       <div class="cell">
         ${managerFields ? `<select class="revstatus-select" data-v="${r.statusRevisao}"
           onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','statusRevisao', this.value)">
+          <option value="pendente" ${r.statusRevisao==='pendente'?'selected':''}>Pendente</option>
           <option value="andamento" ${r.statusRevisao==='andamento'?'selected':''}>Em andamento</option>
           <option value="revisado" ${r.statusRevisao==='revisado'?'selected':''}>Revisado</option>
           <option value="erro" ${r.statusRevisao==='erro'?'selected':''}>Erro encontrado</option>

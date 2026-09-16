@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Estação de Editores</title>
+  
 <style>
   :root{
     --bg: #0e1013;
@@ -568,6 +569,55 @@
   .auth-card .auth-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--line);}
   .auth-error{color:var(--red);font-size:12px;margin-top:10px;min-height:18px;}
   .user-session{font-size:12px;color:var(--text-dim);display:flex;gap:8px;align-items:center;}.logout-btn{cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--text-dim);padding:7px 10px;border-radius:7px;}
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.65);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+.modal-box{
+  width:min(420px,90vw);
+  background:var(--panel);
+  color:var(--text);
+  border-radius:14px;
+  padding:24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);
+}
+
+.modal-box h2{
+  margin-top:0;
+  margin-bottom:20px;
+}
+
+.modal-box label{
+  display:block;
+  margin-top:12px;
+  margin-bottom:6px;
+  font-weight:600;
+}
+
+.modal-box input,
+.modal-box select{
+  width:100%;
+  box-sizing:border-box;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--input);
+  color:var(--text);
+}
+
+.new-user-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:20px;
+}
+  
 </style>
 </head>
 <body>
@@ -579,7 +629,6 @@
     <input id="authEmail" type="email" placeholder="E-mail">
     <input id="authPassword" type="password" placeholder="Senha">
     <button onclick="signIn()">Entrar</button>
-    <button class="auth-secondary" onclick="signUp()">Criar conta</button>
     <div class="auth-error" id="authError"></div>
   </div>
 </div>
@@ -601,6 +650,7 @@
           </div>
           <button class="io-btn" id="importBtn" onclick="document.getElementById('importFile').click()">Importar dados</button>
           <button class="io-btn primary" id="exportBtn" onclick="exportData()">Exportar dados</button>
+          <button class="io-btn" id="newUserBtn" onclick="openNewUserModal()">+ Novo usuário</button>
           <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(this.files[0])">
         </div>
       </div>
@@ -733,8 +783,10 @@ async function loadAccess(user){
 function applyAccessUi(){
   const importBtn = document.getElementById('importBtn');
   const exportBtn = document.getElementById('exportBtn');
+  const newUserBtn = document.getElementById('newUserBtn');
   if(importBtn) importBtn.style.display = canImport() ? 'inline-block' : 'none';
   if(exportBtn) exportBtn.style.display = canExport() ? 'inline-block' : 'none';
+  if(newUserBtn) newUserBtn.style.display = isAdmin() ? 'inline-block' : 'none';
 }
 
 function blankLangRow(idioma){
@@ -1799,7 +1851,57 @@ function simpleEditorRowHtml(movieId, e){
 document.addEventListener('click', () => {
   if(openPickerFor){ openPickerFor = null; render(); }
 });
+function openNewUserModal(){
+  if(!isAdmin()) return;
 
+  const modal = document.createElement('div');
+
+  modal.id = 'newUserModal';
+
+  modal.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-box">
+        <h2>Novo usuário</h2>
+
+        <label>Nome</label>
+        <input id="newUserName" type="text" placeholder="Nome do usuário">
+
+        <label>E-mail</label>
+        <input id="newUserEmail" type="email" placeholder="E-mail">
+
+        <label>Senha</label>
+        <input id="newUserPassword" type="password" placeholder="Senha">
+
+        <label>Função</label>
+        <select id="newUserRole">
+          <option value="editor">Editor</option>
+          <option value="admin">Administrador</option>
+        </select>
+
+        <div class="new-user-actions">
+          <button class="io-btn" onclick="closeNewUserModal()">
+            Cancelar
+          </button>
+
+          <button class="io-btn primary" onclick="createNewUser()">
+            Cadastrar
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function closeNewUserModal(){
+  const modal = document.getElementById('newUserModal');
+  if(modal) modal.remove();
+}
+
+function createNewUser(){
+  alert('A criação do usuário será conectada ao Supabase na próxima etapa.');
+}
 async function initSupabase(){
   if(!SUPABASE_URL.startsWith('http') || SUPABASE_ANON_KEY.startsWith('COLE_AQUI')) return;
   try{

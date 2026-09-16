@@ -1929,7 +1929,7 @@ async function createNewUser(){
 
     if(error){
       console.error('Erro ao criar usuário:', error);
-      alert('Não foi possível criar o usuário.');
+      alert(`Erro: ${error.message || error}`);
       return;
     }
 

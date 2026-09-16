@@ -1933,10 +1933,14 @@ async function createNewUser(){
       return;
     }
 
-    if(!data?.success){
-      alert(data?.error || 'Não foi possível criar o usuário.');
-      return;
-    }
+  if(!data?.success){
+  console.error('Resposta da Edge Function:', data);
+  alert(
+    `Erro: ${data?.error || 'Erro desconhecido'}`
+    + (data?.details ? `\n\nDetalhes: ${data.details}` : '')
+  );
+  return;
+}
 
     alert(`Usuário ${name} criado com sucesso.`);
 

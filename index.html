@@ -2046,7 +2046,7 @@ async function onAuthenticated(user){
   currentUser = user;
 await loadAccess(user);
 await loadStationUsers();
-await loadCloudData();
+const loaded = await loadCloudData();
 
 migrateEditorUserIds();
   if(!loaded) saveCloudData();

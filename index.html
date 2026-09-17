@@ -798,7 +798,7 @@ async function loadAccess(user){
   const { data, error } = await supabaseClient
     .from('station_user_access')
     .select('user_id, role, editor_name')
-    .eq('role', 'editor')
+   .in('role', ['editor', 'chief'])
     .order('editor_name', { ascending:true });
 
   if(error){

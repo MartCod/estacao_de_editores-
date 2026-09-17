@@ -790,10 +790,18 @@ function ownsEditor(editor){
 }
 
 function canEditTask(editor, field){
-  if(canManageWork()) return true;
+  // Administrador pode alterar tudo
+  if(isAdmin()) return true;
 
+  // Chief pode gerenciar a tarefa,
+  // mas não pode alterar as datas
+  if(isChief()){
+    return ['urgencia', 'revisor', 'statusRevisao', 'status'].includes(field);
+  }
+
+  // Editor só pode alterar as próprias datas e status
   return ownsEditor(editor)
-    && ['inicio','entrega','status'].includes(field);
+    && ['inicio', 'entrega', 'status'].includes(field);
 }
 function readOnlyValue(value, className=''){
   return `<div class="readonly-value ${className}">${esc(value) || '—'}</div>`;

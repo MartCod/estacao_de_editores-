@@ -683,6 +683,7 @@ let currentUser = null;
 let cloudSaveTimer = null;
 let cloudEnabled = false;
 let currentAccess = { role:'editor', editorName:'' };
+let stationUsers = [];
 
 const DEPTS = [
   { key:'vocal', label:'Vocal' },
@@ -761,10 +762,19 @@ function canCompleteMovie(){ return isAdmin() || isChief(); }
 function canImport(){ return isAdmin(); }
 function canExport(){ return isAdmin() || isChief(); }
 function normalizeName(value){ return (value || '').trim().toLocaleLowerCase('pt-BR'); }
-function ownsEditorName(name){ return currentAccess.role === 'editor' && normalizeName(name) === normalizeName(currentAccess.editorName); }
-function canEditTask(editorName, field){
+function ownsEditor(editor){
+  return currentAccess.role === 'editor'
+    && editor
+    && editor.user_id
+    && currentUser
+    && editor.user_id === currentUser.id;
+}
+
+function canEditTask(editor, field){
   if(canManageWork()) return true;
-  return ownsEditorName(editorName) && ['inicio','entrega','status'].includes(field);
+
+  return ownsEditor(editor)
+    && ['inicio','entrega','status'].includes(field);
 }
 function readOnlyValue(value, className=''){
   return `<div class="readonly-value ${className}">${esc(value) || '—'}</div>`;
@@ -779,6 +789,69 @@ async function loadAccess(user){
     .maybeSingle();
   if(error){ console.error('Falha ao carregar perfil de acesso', error); return; }
   if(data) currentAccess = { role:data.role || 'editor', editorName:data.editor_name || '' };
+}
+  async function loadStationUsers(){
+  stationUsers = [];
+
+  if(!cloudEnabled || !supabaseClient) return;
+
+  const { data, error } = await supabaseClient
+    .from('station_user_access')
+    .select('user_id, role, editor_name')
+    .eq('role', 'editor')
+    .order('editor_name', { ascending:true });
+
+  if(error){
+    console.error('Falha ao carregar usuários da estação', error);
+    return;
+  }
+
+  stationUsers = data || [];
+}
+ function assignEditorUser(movieId, editorId, userId){
+  if(!canManageWork()) return;
+
+  const m = movies.find(movie => movie.id === movieId);
+  if(!m) return;
+
+  const editor = m.depts.vocal.editors.find(item => item.id === editorId);
+  if(!editor) return;
+
+  const user = stationUsers.find(item => item.user_id === userId);
+  if(!user) return;
+
+  editor.user_id = user.user_id;
+  editor.nome = user.editor_name || '';
+
+  saveData();
+  render();
+} 
+  function migrateEditorUserIds(){
+  if(!stationUsers.length) return;
+
+  let changed = false;
+
+  movies.forEach(movie => {
+    Object.values(movie.depts || {}).forEach(dept => {
+      (dept.editors || []).forEach(editor => {
+
+        if(editor.user_id) return;
+
+        const user = stationUsers.find(
+          u => normalizeName(u.editor_name) === normalizeName(editor.nome)
+        );
+
+        if(user){
+          editor.user_id = user.user_id;
+          changed = true;
+        }
+      });
+    });
+  });
+
+  if(changed){
+    saveData();
+  }
 }
 function applyAccessUi(){
   const importBtn = document.getElementById('importBtn');
@@ -1168,7 +1241,7 @@ function updateMovieField(movieId, field, value){
 function updateLangRowField(movieId, editorId, rowId, field, value){
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts.vocal.editors.find(e=>e.id===editorId);
-  if(!canEditTask(e.nome, field)) return;
+  if(!canEditTask(e, field)) return;
   const row = e.idiomas.find(r=>r.id===rowId);
   row[field] = value;
   if(field==='status' && value==='concluido'){
@@ -1183,7 +1256,7 @@ function updateLangRowField(movieId, editorId, rowId, field, value){
 function updateSimpleEditorField(movieId, editorId, field, value){
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts[activeDept].editors.find(e=>e.id===editorId);
-  if(!canEditTask(e.nome, field)) return;
+  if(!canEditTask(e, field)) return;
   e[field] = value;
   if(field==='status' && value==='concluido'){
     e.entrega = todayISO();
@@ -1687,9 +1760,16 @@ function reviewProgressHtml(m){
 function vocalEditorGroupHtml(movieId, e){
   const n = e.idiomas.length;
   const editorName = canManageWork()
-    ? `<input class="editor-name-input" type="text" value="${esc(e.nome)}" placeholder="Nome do editor"
-        oninput="updateEditorName('${movieId}','${e.id}', this.value)">`
-    : `<div class="readonly-value">${esc(e.nome) || 'Sem nome'}</div>`;
+  ? `<select class="editor-name-input"
+      onchange="assignEditorUser('${movieId}','${e.id}', this.value)">
+      <option value="">Selecionar editor</option>
+      ${stationUsers.map(user => `
+        <option value="${user.user_id}" ${e.user_id === user.user_id ? 'selected' : ''}>
+          ${esc(user.editor_name || 'Sem nome')}
+        </option>
+      `).join('')}
+    </select>`
+  : `<div class="readonly-value">${esc(e.nome) || 'Sem nome'}</div>`;
 
   let popover = '';
   if(openPickerFor === e.id){
@@ -1736,10 +1816,10 @@ function vocalEditorGroupHtml(movieId, e){
 function vocalLangRowHtml(movieId, editorId, r, idx){
   const m = movies.find(movie => movie.id === movieId);
   const editor = m.depts.vocal.editors.find(item => item.id === editorId);
-  const dateInput = (field, value) => canEditTask(editor.nome, field)
+  const dateInput = (field, value) => canEditTask(editor, field)
     ? `<input type="date" value="${esc(value)}" onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','${field}', this.value)">`
     : readOnlyValue(value);
-  const statusInput = canEditTask(editor.nome, 'status')
+  const statusInput = canEditTask(editor, 'status')
     ? `<select class="status-select" data-v="${r.status}" onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','status', this.value)">
         <option value="pendente" ${r.status==='pendente'?'selected':''}>Pendente</option>
         <option value="fazendo" ${r.status==='fazendo'?'selected':''}>Fazendo</option>
@@ -1810,7 +1890,7 @@ function simpleEditorRowHtml(movieId, e){
     ? `<input type="text" class="editor-name-input inline" placeholder="Nome do editor" value="${esc(e.nome)}"
         oninput="updateSimpleEditorField('${movieId}','${e.id}','nome', this.value)">`
     : readOnlyValue(e.nome);
-  const dateInput = (field, value) => canEditTask(e.nome, field)
+  const dateInput = (field, value) => canEditTask(e, field)
     ? `<input type="date" value="${esc(value)}" onchange="updateSimpleEditorField('${movieId}','${e.id}','${field}', this.value)">`
     : readOnlyValue(value);
   const statusInput = canEditTask(e.nome, 'status')
@@ -1964,8 +2044,11 @@ async function initSupabase(){
 
 async function onAuthenticated(user){
   currentUser = user;
-  await loadAccess(user);
-  const loaded = await loadCloudData();
+await loadAccess(user);
+await loadStationUsers();
+await loadCloudData();
+
+migrateEditorUserIds();
   if(!loaded) saveCloudData();
   document.getElementById('authOverlay').style.display = 'none';
   document.getElementById('userSession').textContent = user.email || 'Usuário autenticado';

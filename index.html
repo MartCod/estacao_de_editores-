@@ -1629,6 +1629,7 @@ function pathRowHtml(m){
     ? `<input type="text" id="pathInput-${m.id}" placeholder="Ex: //servidor/projetos/filme_x/audio_bruto ou link do Drive"
         value="${esc(m.caminho)}" oninput="updateMovieField('${m.id}','caminho', this.value)">`
     : `<div class="readonly-path">${esc(m.caminho) || '—'}</div>`;
+
   return `
     <div class="path-row">
       <div class="path-field">
@@ -1678,29 +1679,6 @@ function pathRowHtml(m){
             </button>
           </div>
         </div>
-        <div class="path-audio-field">
-          <span class="audio-path-label">ÁUDIO 2.0</span>
-
-          <div class="input-shell">
-            <input
-              type="text"
-              id="path20Input-${m.id}"
-              placeholder="Caminho dos áudios 2.0"
-              value="${esc(m.caminho20 || '')}"
-              oninput="updateMovieField('${m.id}', 'caminho20', this.value)"
-            >
-
-            <button
-              class="copy-btn"
-              id="copyBtn20-${m.id}"
-              onclick="copyPath('${m.id}', 'caminho20', 'copyBtn20-${m.id}')"
-            >
-              Copiar
-            </button>
-          </div>
-        </div>
-
-        <!-- COLE O NOVO BLOCO AQUI -->
 
         <div class="path-audio-field">
           <span class="audio-path-label">DRIVE</span>
@@ -1724,7 +1702,6 @@ function pathRowHtml(m){
           </div>
         </div>
 
-      </div>
       </div>
     </div>
   `;

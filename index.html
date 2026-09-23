@@ -1845,8 +1845,8 @@ function addMovieLanguage(linkId) {
         element => element.dataset.language === code
       );
 
+      // Se já foi escolhido, não duplica
       if (alreadyExists) {
-        menu.remove();
         return;
       }
 
@@ -1879,7 +1879,7 @@ function addMovieLanguage(linkId) {
 
         <button
           type="button"
-          onclick="this.parentElement.remove()"
+          onclick="event.stopPropagation(); this.parentElement.remove()"
           style="
             background:none;
             border:none;
@@ -1900,7 +1900,9 @@ function addMovieLanguage(linkId) {
         languagesContainer.querySelector('button')
       );
 
-      menu.remove();
+      // NÃO fecha o menu.
+      // Assim é possível selecionar vários idiomas
+      // antes de clicar fora.
     };
 
     menu.appendChild(option);
@@ -1912,8 +1914,10 @@ function addMovieLanguage(linkId) {
 
   document.addEventListener('click', function closeLanguageMenu(event) {
 
-    if (!menu.contains(event.target) &&
-        !languagesContainer.contains(event.target)) {
+    if (
+      !menu.contains(event.target) &&
+      !languagesContainer.contains(event.target)
+    ) {
 
       menu.remove();
 
@@ -1925,7 +1929,6 @@ function addMovieLanguage(linkId) {
 
   });
 }
-
   function updateMovieLanguageFlag(input) {
   const value = input.value.trim().toUpperCase();
 

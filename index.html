@@ -1814,7 +1814,6 @@ function addMovieLanguage(linkId) {
     option.style.cssText = `
       background:transparent;
       color:#ffffff;
-      border:none;
       padding:8px 10px;
       border-radius:6px;
       cursor:pointer;
@@ -1840,9 +1839,6 @@ function addMovieLanguage(linkId) {
 
   languagesContainer.appendChild(menu);
 
-  /*
-   * CLIQUE NO MENU
-   */
   menu.addEventListener('click', function(event) {
 
     event.preventDefault();
@@ -1856,16 +1852,15 @@ function addMovieLanguage(linkId) {
 
     if (!code) return;
 
-    const existingLanguages = [
-      ...languagesContainer.querySelectorAll('.movie-language-tag')
-    ];
+    const existingLanguages =
+      languagesContainer.querySelectorAll('.movie-language-tag');
 
-    const alreadyExists = existingLanguages.some(function(element) {
-      return element.dataset.language === code;
-    });
+    for (const element of existingLanguages) {
 
-    if (alreadyExists) {
-      return;
+      if (element.dataset.language === code) {
+        return;
+      }
+
     }
 
     const languageElement = document.createElement('span');
@@ -1926,32 +1921,45 @@ function addMovieLanguage(linkId) {
       languagesContainer.appendChild(languageElement);
     }
 
+    const removeButton =
+      languageElement.querySelector('.remove-language-btn');
+
+    removeButton.addEventListener('click', function(removeEvent) {
+
+      removeEvent.preventDefault();
+      removeEvent.stopPropagation();
+
+      languageElement.remove();
+
+    });
+
   });
 
-  /*
-   * REMOVER IDIOMA
-   */
-  languagesContainer.addEventListener('click', function(event) {
+  setTimeout(function() {
 
-    const removeButton = event.target.closest('.remove-language-btn');
+    function closeMenu(event) {
 
-    if (!removeButton) return;
+      if (!languagesContainer.contains(event.target)) {
 
-    event.preventDefault();
-    event.stopPropagation();
+        menu.remove();
 
-    const languageTag = removeButton.closest('.movie-language-tag');
+        document.removeEventListener(
+          'click',
+          closeMenu
+        );
 
-    if (languageTag) {
-      languageTag.remove();
+      }
+
     }
 
-  });
+    document.addEventListener(
+      'click',
+      closeMenu
+    );
 
-  /*
-   * FECHAR AO CLICAR FORA
-   */
-  setTimeout(function() {
+  }, 0);
+
+}
 
     function closeMenu(event) {
 

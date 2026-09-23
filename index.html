@@ -1935,7 +1935,7 @@ function addMovieLanguage(linkId) {
 
   });
 
-  setTimeout(function() {
+    setTimeout(function() {
 
     function closeMenu(event) {
 
@@ -1959,52 +1959,6 @@ function addMovieLanguage(linkId) {
 
   }, 0);
 
-}
-
-    function closeMenu(event) {
-
-      if (!languagesContainer.contains(event.target)) {
-
-        menu.remove();
-
-        document.removeEventListener(
-          'click',
-          closeMenu
-        );
-
-      }
-
-    }
-
-    document.addEventListener(
-      'click',
-      closeMenu
-    );
-
-  }, 0);
-}
-    function closeLanguageMenu(event) {
-
-      if (
-        !menu.contains(event.target) &&
-        !languagesContainer.contains(event.target)
-      ) {
-
-        menu.remove();
-
-        document.removeEventListener(
-          'click',
-          closeLanguageMenu
-        );
-      }
-    }
-
-    document.addEventListener(
-      'click',
-      closeLanguageMenu
-    );
-
-  }, 0);
 }
   function updateMovieLanguageFlag(input) {
   const value = input.value.trim().toUpperCase();

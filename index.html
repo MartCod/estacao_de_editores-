@@ -1662,15 +1662,17 @@ function pathRowHtml(m){
   class="add-movie-link-btn"
   onclick="addMovieLink('${m.id}')"
   style="background:#22c55e; color:#ffffff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600;"
+<button
+  type="button"
+  class="add-movie-link-btn"
+  onclick="addMovieLink('${m.id}')"
+  style="background:#22c55e; color:#ffffff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600;"
 >
   <span class="add-movie-link-icon">＋</span>
   Adicionar mais um link
 </button>
-            <span class="add-movie-link-icon">＋</span>
-            Adicionar mais um link
-          </button>
 
-          <div id="movieLinks-${m.id}" class="movie-links-list">
+<div id="movieLinks-${m.id}" class="movie-links-list">
           </div>
 
         </div>

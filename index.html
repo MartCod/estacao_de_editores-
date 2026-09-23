@@ -1681,7 +1681,7 @@ function pathRowHtml(m){
     </div>
   `;
 }
- function addMovieLink(movieId) {
+function addMovieLink(movieId) {
   const container = document.getElementById(`movieLinks-${movieId}`);
 
   if (!container) return;
@@ -1707,6 +1707,15 @@ function pathRowHtml(m){
         onclick="navigator.clipboard.writeText(this.previousElementSibling.value)"
       >
         Copiar
+      </button>
+
+      <button
+        type="button"
+        onclick="document.getElementById('${linkId}').remove()"
+        style="background:#dc2626; color:#ffffff; border:none; width:32px; height:32px; border-radius:6px; cursor:pointer; font-size:18px; font-weight:bold; line-height:1;"
+        title="Excluir link"
+      >
+        ×
       </button>
     </div>
   `;

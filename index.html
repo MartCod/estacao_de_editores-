@@ -1825,16 +1825,17 @@ function addMovieLanguage(linkId) {
       </span>
     `;
 
-    option.onmouseenter = function() {
+    option.addEventListener('mouseenter', function() {
       this.style.background = '#374151';
-    };
+    });
 
-    option.onmouseleave = function() {
+    option.addEventListener('mouseleave', function() {
       this.style.background = 'transparent';
-    };
+    });
 
-    option.onclick = function(event) {
+    option.addEventListener('click', function(event) {
 
+      event.preventDefault();
       event.stopPropagation();
 
       const existingLanguages = [
@@ -1845,7 +1846,6 @@ function addMovieLanguage(linkId) {
         element => element.dataset.language === code
       );
 
-      // Se já foi escolhido, não duplica
       if (alreadyExists) {
         return;
       }
@@ -1879,7 +1879,6 @@ function addMovieLanguage(linkId) {
 
         <button
           type="button"
-          onclick="event.stopPropagation(); this.parentElement.remove()"
           style="
             background:none;
             border:none;
@@ -1895,15 +1894,24 @@ function addMovieLanguage(linkId) {
         </button>
       `;
 
-      languagesContainer.insertBefore(
-        languageElement,
-        languagesContainer.querySelector('button')
+      const removeButton = languageElement.querySelector('button');
+
+      removeButton.addEventListener('click', function(removeEvent) {
+        removeEvent.preventDefault();
+        removeEvent.stopPropagation();
+        languageElement.remove();
+      });
+
+      const addLanguageButton = languagesContainer.querySelector(
+        'button:not(.movie-language-menu button)'
       );
 
-      // NÃO fecha o menu.
-      // Assim é possível selecionar vários idiomas
-      // antes de clicar fora.
-    };
+      languagesContainer.insertBefore(
+        languageElement,
+        addLanguageButton
+      );
+
+    });
 
     menu.appendChild(option);
   });
@@ -1912,22 +1920,34 @@ function addMovieLanguage(linkId) {
 
   languagesContainer.appendChild(menu);
 
-  document.addEventListener('click', function closeLanguageMenu(event) {
+  /*
+   * O listener de clique externo só é criado depois que
+   * o menu já foi aberto.
+   */
+  setTimeout(function() {
 
-    if (
-      !menu.contains(event.target) &&
-      !languagesContainer.contains(event.target)
-    ) {
+    function closeLanguageMenu(event) {
 
-      menu.remove();
+      if (
+        !menu.contains(event.target) &&
+        !languagesContainer.contains(event.target)
+      ) {
 
-      document.removeEventListener(
-        'click',
-        closeLanguageMenu
-      );
+        menu.remove();
+
+        document.removeEventListener(
+          'click',
+          closeLanguageMenu
+        );
+      }
     }
 
-  });
+    document.addEventListener(
+      'click',
+      closeLanguageMenu
+    );
+
+  }, 0);
 }
   function updateMovieLanguageFlag(input) {
   const value = input.value.trim().toUpperCase();

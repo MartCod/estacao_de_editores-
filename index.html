@@ -1657,22 +1657,17 @@ function pathRowHtml(m){
         <!-- NOVOS LINKS -->
         <div class="movie-links-section">
 
-         <button
-  type="button"
-  class="add-movie-link-btn"
-  onclick="addMovieLink('${m.id}')"
-  style="background:#22c55e; color:#ffffff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600;"
-<button
-  type="button"
-  class="add-movie-link-btn"
-  onclick="addMovieLink('${m.id}')"
-  style="background:#22c55e; color:#ffffff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600;"
->
-  <span class="add-movie-link-icon">＋</span>
-  Adicionar mais um link
-</button>
+          <button
+            type="button"
+            class="add-movie-link-btn"
+            onclick="addMovieLink('${m.id}')"
+            style="background:#22c55e; color:#ffffff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600;"
+          >
+            <span class="add-movie-link-icon">＋</span>
+            Adicionar mais um link
+          </button>
 
-<div id="movieLinks-${m.id}" class="movie-links-list">
+          <div id="movieLinks-${m.id}" class="movie-links-list">
           </div>
 
         </div>
@@ -1680,6 +1675,116 @@ function pathRowHtml(m){
       </div>
     </div>
   `;
+}
+  function getCountryFlag(countryCode) {
+  const code = String(countryCode || '').trim().toUpperCase();
+
+  if (!/^[A-Z]{2}$/.test(code)) {
+    return '🏳️';
+  }
+
+  return [...code]
+    .map(char => String.fromCodePoint(127397 + char.charCodeAt(0)))
+    .join('');
+}
+  function addMovieLanguage(linkId) {
+  const linkRow = document.getElementById(linkId);
+
+  if (!linkRow) return;
+
+  const languagesContainer = linkRow.querySelector('.movie-link-languages');
+
+  if (!languagesContainer) return;
+
+  const languageId = `language-${Date.now()}`;
+
+  const languageElement = document.createElement('span');
+
+  languageElement.id = languageId;
+
+  languageElement.style.cssText = `
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    background:#374151;
+    color:#ffffff;
+    padding:4px 8px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:600;
+  `;
+
+  languageElement.innerHTML = `
+    <input
+      type="text"
+      maxlength="5"
+      placeholder="PT-BR"
+      style="
+        width:48px;
+        background:transparent;
+        border:none;
+        outline:none;
+        color:#ffffff;
+        font-size:12px;
+        font-weight:600;
+        text-transform:uppercase;
+        padding:0;
+      "
+      oninput="updateMovieLanguageFlag(this)"
+    >
+
+    <span class="language-flag"></span>
+
+    <button
+      type="button"
+      onclick="document.getElementById('${languageId}').remove()"
+      style="
+        background:none;
+        border:none;
+        color:#ffffff;
+        cursor:pointer;
+        font-size:14px;
+        padding:0;
+        line-height:1;
+      "
+      title="Remover idioma"
+    >
+      ×
+    </button>
+  `;
+
+  languagesContainer.insertBefore(
+    languageElement,
+    languagesContainer.querySelector('button')
+  );
+
+  languageElement.querySelector('input').focus();
+}
+  function updateMovieLanguageFlag(input) {
+  const value = input.value.trim().toUpperCase();
+
+  input.value = value;
+
+  const languageElement = input.closest('span');
+
+  if (!languageElement) return;
+
+  const flagElement = languageElement.querySelector('.language-flag');
+
+  if (!flagElement) return;
+
+  // Aceita códigos como PT-BR, EN-US, ES-ES, FR-FR etc.
+  const parts = value.split('-');
+
+  const countryCode = parts.length > 1
+    ? parts[1]
+    : parts[0];
+
+  if (/^[A-Z]{2}$/.test(countryCode)) {
+    flagElement.textContent = getCountryFlag(countryCode);
+  } else {
+    flagElement.textContent = '';
+  }
 }
 function addMovieLink(movieId) {
   const container = document.getElementById(`movieLinks-${movieId}`);

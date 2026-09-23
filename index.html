@@ -1743,7 +1743,7 @@ function pathRowHtml(m){
     .map(char => String.fromCodePoint(127397 + char.charCodeAt(0)))
     .join('');
 }
-  function addMovieLanguage(linkId) {
+function addMovieLanguage(linkId) {
   const linkRow = document.getElementById(linkId);
 
   if (!linkRow) return;
@@ -1752,69 +1752,162 @@ function pathRowHtml(m){
 
   if (!languagesContainer) return;
 
-  const languageId = `language-${Date.now()}`;
+  // Se a lista já estiver aberta, fecha
+  const existingMenu = languagesContainer.querySelector('.movie-language-menu');
 
-  const languageElement = document.createElement('span');
+  if (existingMenu) {
+    existingMenu.remove();
+    return;
+  }
 
-  languageElement.id = languageId;
+  const languages = [
+    ['PT-BR', 'Português (Brasil)'],
+    ['PT-PT', 'Português (Portugal)'],
+    ['EN-US', 'Inglês (EUA)'],
+    ['EN-GB', 'Inglês (Reino Unido)'],
+    ['ES-ES', 'Espanhol (Espanha)'],
+    ['ES-MX', 'Espanhol (México)'],
+    ['FR-FR', 'Francês'],
+    ['IT-IT', 'Italiano'],
+    ['DE-DE', 'Alemão'],
+    ['JA-JP', 'Japonês'],
+    ['KO-KR', 'Coreano'],
+    ['ZH-CN', 'Chinês'],
+    ['RU-RU', 'Russo'],
+    ['AR-SA', 'Árabe'],
+    ['HI-IN', 'Hindi']
+  ];
 
-  languageElement.style.cssText = `
-    display:inline-flex;
-    align-items:center;
-    gap:4px;
-    background:#374151;
-    color:#ffffff;
-    padding:4px 8px;
-    border-radius:6px;
-    font-size:12px;
-    font-weight:600;
+  const menu = document.createElement('div');
+
+  menu.className = 'movie-language-menu';
+
+  menu.style.cssText = `
+    position:absolute;
+    z-index:9999;
+    background:#1f2937;
+    border:1px solid #4b5563;
+    border-radius:8px;
+    padding:6px;
+    margin-top:4px;
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    min-width:210px;
+    max-height:260px;
+    overflow-y:auto;
+    box-shadow:0 8px 20px rgba(0,0,0,.35);
   `;
 
-  languageElement.innerHTML = `
-    <input
-      type="text"
-      maxlength="5"
-      placeholder="PT-BR"
-      style="
-        width:48px;
-        background:transparent;
-        border:none;
-        outline:none;
+  languages.forEach(([code, name]) => {
+
+    const option = document.createElement('button');
+
+    option.type = 'button';
+
+    option.style.cssText = `
+      background:transparent;
+      color:#ffffff;
+      border:none;
+      padding:7px 9px;
+      border-radius:6px;
+      cursor:pointer;
+      text-align:left;
+      font-size:12px;
+      font-weight:600;
+    `;
+
+    option.innerHTML = `
+      ${getCountryFlag(code.split('-')[1])}
+      ${code}
+      <span style="opacity:.7; font-weight:400;">
+        — ${name}
+      </span>
+    `;
+
+    option.onmouseenter = function() {
+      this.style.background = '#374151';
+    };
+
+    option.onmouseleave = function() {
+      this.style.background = 'transparent';
+    };
+
+    option.onclick = function() {
+
+      // Não permite adicionar o mesmo idioma duas vezes
+      const existingLanguages = [
+        ...languagesContainer.querySelectorAll('.movie-language-tag')
+      ];
+
+      const alreadyExists = existingLanguages.some(
+        element => element.dataset.language === code
+      );
+
+      if (alreadyExists) {
+        menu.remove();
+        return;
+      }
+
+      const languageElement = document.createElement('span');
+
+      languageElement.className = 'movie-language-tag';
+
+      languageElement.dataset.language = code;
+
+      languageElement.style.cssText = `
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+        background:#374151;
         color:#ffffff;
+        padding:4px 8px;
+        border-radius:6px;
         font-size:12px;
         font-weight:600;
-        text-transform:uppercase;
-        padding:0;
-      "
-      oninput="updateMovieLanguageFlag(this)"
-    >
+      `;
 
-    <span class="language-flag"></span>
+      languageElement.innerHTML = `
+        <span>
+          ${getCountryFlag(code.split('-')[1])}
+        </span>
 
-    <button
-      type="button"
-      onclick="document.getElementById('${languageId}').remove()"
-      style="
-        background:none;
-        border:none;
-        color:#ffffff;
-        cursor:pointer;
-        font-size:14px;
-        padding:0;
-        line-height:1;
-      "
-      title="Remover idioma"
-    >
-      ×
-    </button>
-  `;
+        <span>
+          ${code}
+        </span>
 
-  languagesContainer.insertBefore(
-    languageElement,
-    languagesContainer.querySelector('button')
-  );
+        <button
+          type="button"
+          onclick="this.parentElement.remove()"
+          style="
+            background:none;
+            border:none;
+            color:#ffffff;
+            cursor:pointer;
+            font-size:14px;
+            padding:0;
+            line-height:1;
+          "
+          title="Remover idioma"
+        >
+          ×
+        </button>
+      `;
 
-  languageElement.querySelector('input').focus();
+      languagesContainer.insertBefore(
+        languageElement,
+        languagesContainer.querySelector('button')
+      );
+
+      menu.remove();
+    };
+
+    menu.appendChild(option);
+  });
+
+  languagesContainer.style.position = 'relative';
+
+  languagesContainer.appendChild(menu);
 }
   function updateMovieLanguageFlag(input) {
   const value = input.value.trim().toUpperCase();

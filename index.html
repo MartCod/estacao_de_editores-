@@ -1625,61 +1625,13 @@ function movieHeaderHtml(m){
 }
 
 function pathRowHtml(m){
-  const field = isAdmin()
-    ? `<input type="text" id="pathInput-${m.id}" placeholder="Ex: //servidor/projetos/filme_x/audio_bruto ou link do Drive"
-        value="${esc(m.caminho)}" oninput="updateMovieField('${m.id}','caminho', this.value)">`
-    : `<div class="readonly-path">${esc(m.caminho) || '—'}</div>`;
-
   return `
     <div class="path-row">
       <div class="path-field">
 
         <span class="field-label">Caminho para download dos arquivos</span>
 
-        <div class="path-audio-field">
-          <span class="audio-path-label">ÁUDIO 5.1</span>
-
-          <div class="input-shell">
-            <input
-              type="text"
-              id="path51Input-${m.id}"
-              placeholder="Caminho dos áudios 5.1"
-              value="${esc(m.caminho51 || '')}"
-              oninput="updateMovieField('${m.id}', 'caminho51', this.value)"
-            >
-
-            <button
-              class="copy-btn"
-              id="copyBtn51-${m.id}"
-              onclick="copyPath('${m.id}', 'caminho51', 'copyBtn51-${m.id}')"
-            >
-              Copiar
-            </button>
-          </div>
-        </div>
-
-        <div class="path-audio-field">
-          <span class="audio-path-label">ÁUDIO 2.0</span>
-
-          <div class="input-shell">
-            <input
-              type="text"
-              id="path20Input-${m.id}"
-              placeholder="Caminho dos áudios 2.0"
-              value="${esc(m.caminho20 || '')}"
-              oninput="updateMovieField('${m.id}', 'caminho20', this.value)"
-            >
-
-            <button
-              class="copy-btn"
-              id="copyBtn20-${m.id}"
-              onclick="copyPath('${m.id}', 'caminho20', 'copyBtn20-${m.id}')"
-            >
-              Copiar
-            </button>
-          </div>
-        </div>
-
+        <!-- DRIVE EXISTENTE -->
         <div class="path-audio-field">
           <span class="audio-path-label">DRIVE</span>
 
@@ -1702,11 +1654,27 @@ function pathRowHtml(m){
           </div>
         </div>
 
+        <!-- NOVOS LINKS -->
+        <div class="movie-links-section">
+
+          <button
+            type="button"
+            class="add-movie-link-btn"
+            onclick="addMovieLink('${m.id}')"
+          >
+            <span class="add-movie-link-icon">＋</span>
+            Adicionar mais um link
+          </button>
+
+          <div id="movieLinks-${m.id}" class="movie-links-list">
+          </div>
+
+        </div>
+
       </div>
     </div>
   `;
 }
-
 function overallProgressHtml(stagePct, overallPct){
   return `
     <div class="progress-block overall-block">

@@ -1752,11 +1752,12 @@ function addMovieLanguage(linkId) {
 
   if (!languagesContainer) return;
 
-  // Se a lista já estiver aberta, fecha
+  // Se já existe um menu aberto, fecha
   const existingMenu = languagesContainer.querySelector('.movie-language-menu');
 
   if (existingMenu) {
     existingMenu.remove();
+    document.removeEventListener('click', existingMenu._outsideClickHandler);
     return;
   }
 
@@ -1793,7 +1794,7 @@ function addMovieLanguage(linkId) {
     display:flex;
     flex-direction:column;
     gap:3px;
-    min-width:210px;
+    min-width:230px;
     max-height:260px;
     overflow-y:auto;
     box-shadow:0 8px 20px rgba(0,0,0,.35);
@@ -1815,6 +1816,7 @@ function addMovieLanguage(linkId) {
       text-align:left;
       font-size:12px;
       font-weight:600;
+      width:100%;
     `;
 
     option.innerHTML = `
@@ -1833,9 +1835,11 @@ function addMovieLanguage(linkId) {
       this.style.background = 'transparent';
     };
 
-    option.onclick = function() {
+    option.onclick = function(event) {
 
-      // Não permite adicionar o mesmo idioma duas vezes
+      event.stopPropagation();
+
+      // Não permite idioma duplicado
       const existingLanguages = [
         ...languagesContainer.querySelectorAll('.movie-language-tag')
       ];
@@ -1846,9 +1850,118 @@ function addMovieLanguage(linkId) {
 
       if (alreadyExists) {
         menu.remove();
+
+        if (menu._outsideClickHandler) {
+          document.removeEventListener(
+            'click',
+            menu._outsideClickHandler
+          );
+        }
+
         return;
       }
 
+      const languageElement = document.createElement('span');
+
+      languageElement.className = 'movie-language-tag';
+
+      languageElement.dataset.language = code;
+
+      languageElement.style.cssText = `
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+        background:#374151;
+        color:#ffffff;
+        padding:4px 8px;
+        border-radius:6px;
+        font-size:12px;
+        font-weight:600;
+      `;
+
+      languageElement.innerHTML = `
+        <span>
+          ${getCountryFlag(code.split('-')[1])}
+        </span>
+
+        <span>
+          ${code}
+        </span>
+
+        <button
+          type="button"
+          onclick="this.parentElement.remove()"
+          style="
+            background:none;
+            border:none;
+            color:#ffffff;
+            cursor:pointer;
+            font-size:14px;
+            padding:0;
+            line-height:1;
+          "
+          title="Remover idioma"
+        >
+          ×
+        </button>
+      `;
+
+      languagesContainer.insertBefore(
+        languageElement,
+        languagesContainer.querySelector(
+          'button.add-movie-language-btn'
+        ) || languagesContainer.querySelector('button')
+      );
+
+      menu.remove();
+
+      if (menu._outsideClickHandler) {
+        document.removeEventListener(
+          'click',
+          menu._outsideClickHandler
+        );
+      }
+    };
+
+    menu.appendChild(option);
+  });
+
+  languagesContainer.style.position = 'relative';
+
+  languagesContainer.appendChild(menu);
+
+  // Impede que cliques dentro do menu sejam considerados
+  // como cliques fora
+  menu.addEventListener('click', function(event) {
+    event.stopPropagation();
+  });
+
+  // Fecha ao clicar fora
+  const outsideClickHandler = function(event) {
+
+    if (!menu.contains(event.target) &&
+        !languagesContainer.contains(event.target)) {
+
+      menu.remove();
+
+      document.removeEventListener(
+        'click',
+        outsideClickHandler
+      );
+    }
+  };
+
+  menu._outsideClickHandler = outsideClickHandler;
+
+  // Pequeno atraso para não fechar imediatamente
+  // pelo mesmo clique que abriu o menu
+  setTimeout(() => {
+    document.addEventListener(
+      'click',
+      outsideClickHandler
+    );
+  }, 0);
+}
       const languageElement = document.createElement('span');
 
       languageElement.className = 'movie-language-tag';

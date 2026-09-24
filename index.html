@@ -1787,6 +1787,37 @@ function selectMovie(id){
   saveData();
   render();
 }
+  function startMovieDrag(event, id){
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', id);
+}
+
+function allowMovieDrop(event){
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+}
+
+function dropMovie(event, targetId){
+  event.preventDefault();
+
+  const draggedId = event.dataTransfer.getData('text/plain');
+
+  if(!draggedId || draggedId === targetId) return;
+
+  const draggedIndex = movies.findIndex(m => m.id === draggedId);
+  const targetIndex = movies.findIndex(m => m.id === targetId);
+
+  if(draggedIndex === -1 || targetIndex === -1) return;
+
+  const draggedMovie = movies.splice(draggedIndex, 1)[0];
+
+  const newTargetIndex = movies.findIndex(m => m.id === targetId);
+
+  movies.splice(newTargetIndex, 0, draggedMovie);
+
+  saveData();
+  render();
+}
 
 function syncTabName(id, value){
   const chip = document.getElementById('tab-'+id);

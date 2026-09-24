@@ -1653,11 +1653,15 @@ function renderMovieTabs(){
       const number = String(index + 2).padStart(2, '0');
       const status = index === 0 ? 'PRÓXIMO' : 'NA FILA';
 
-    html += `
-  <div
-    class="queue-movie-card"
-    onclick="selectMovie('${m.id}')"
-  >
+   html += `
+        <div
+          class="queue-movie-card"
+          draggable="true"
+          ondragstart="startMovieDrag(event, '${m.id}')"
+          ondragover="allowMovieDrop(event)"
+          ondrop="dropMovie(event, '${m.id}')"
+          onclick="selectMovie('${m.id}')"
+        >
     <div class="queue-number">
       ${number}
     </div>

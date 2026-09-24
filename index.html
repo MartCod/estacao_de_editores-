@@ -1465,62 +1465,73 @@ function renderMovieTabs(){
   const activeMovie = movies.find(m => m.id === activeId);
   const queueMovies = movies.filter(m => m.id !== activeId);
 
-  tabs.innerHTML = `
-    <div class="production-queue">
+  let html = '<div class="production-queue">';
 
-      ${activeMovie ? `
-        <div class="current-movie-card" onclick="selectMovie('${activeMovie.id}')">
-          <div class="current-movie-label">
-            🟢 EDITANDO AGORA
-          </div>
-
-          <div class="current-movie-title">
-            🎬 ${esc(activeMovie.nome) || 'Sem título'}
-          </div>
-        </div>
-      ` : ''}
-
-      ${queueMovies.length ? `
-        <div class="queue-title">
-          ↓ PRÓXIMOS FILMES
+  if(activeMovie){
+    html += `
+      <div class="current-movie-card" onclick="selectMovie('${activeMovie.id}')">
+        <div class="current-movie-label">
+          🟢 EDITANDO AGORA
         </div>
 
-        <div class="movie-queue-list">
-          ${queueMovies.map((m, index) => `
-            <div class="queue-movie-card" onclick="selectMovie('${m.id}')">
-              <div class="queue-number">
-                ${String(index + 2).padStart(2, '0')}
-              </div>
-
-              <div class="queue-movie-info">
-                <div class="queue-status">
-                  ${index === 0 ? 'PRÓXIMO' : 'NA FILA'}
-                </div>
-
-                <div class="queue-movie-name">
-                  🎬 ${esc(m.nome) || 'Sem título'}
-                </div>
-              </div>
-            </div>
-          `).join('')}
+        <div class="current-movie-title">
+          🎬 ${esc(activeMovie.nome) || 'Sem título'}
         </div>
-      ` : ''}
+      </div>
+    `;
+  }
 
-      <div class="queue-actions">
-        ${canManageWork()
-          ? `<button class="add-movie-btn" onclick="showProduction(); addMovie()">+ Novo Filme</button>`
-          : ''
-        }
-
-        <button class="history-btn ${currentView==='history'?'active':''}" onclick="showHistory()">
-          Histórico de filmes concluídos
-        </button>
+  if(queueMovies.length){
+    html += `
+      <div class="queue-title">
+        ↓ PRÓXIMOS FILMES
       </div>
 
+      <div class="movie-queue-list">
+    `;
+
+    queueMovies.forEach((m, index) => {
+      const number = String(index + 2).padStart(2, '0');
+      const status = index === 0 ? 'PRÓXIMO' : 'NA FILA';
+
+      html += `
+        <div class="queue-movie-card" onclick="selectMovie('${m.id}')">
+          <div class="queue-number">
+            ${number}
+          </div>
+
+          <div class="queue-movie-info">
+            <div class="queue-status">
+              ${status}
+            </div>
+
+            <div class="queue-movie-name">
+              🎬 ${esc(m.nome) || 'Sem título'}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="queue-actions">
+      ${canManageWork() ? '<button class="add-movie-btn" onclick="showProduction(); addMovie()">+ Novo Filme</button>' : ''}
+
+      <button class="history-btn ${currentView === 'history' ? 'active' : ''}" onclick="showHistory()">
+        Histórico de filmes concluídos
+      </button>
     </div>
   `;
-}
 
+  html += '</div>';
+
+  tabs.innerHTML = html;
+}
 function showProduction(){
   currentView = 'production';
   render();

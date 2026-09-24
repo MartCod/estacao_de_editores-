@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Estação de Editores</title>
+  
 <style>
   :root{
     --bg: #0e1013;
@@ -58,6 +59,7 @@
   body.theme-light select.status-select[data-v="pendente"]{ color:#4b5563; }
   body.theme-light select.status-select[data-v="fazendo"]{ color:#1d4ed8; }
   body.theme-light select.status-select[data-v="concluido"]{ color:#15803d; }
+  body.theme-light select.revstatus-select[data-v="pendente"]{ color:#4b5563; }
   body.theme-light select.revstatus-select[data-v="andamento"]{ color:#1d4ed8; }
   body.theme-light select.revstatus-select[data-v="revisado"]{ color:#15803d; }
   body.theme-light select.revstatus-select[data-v="erro"]{ color:#a83214; }
@@ -83,7 +85,7 @@
     padding: 28px 20px 80px;
     transition: background .2s ease, color .2s ease;
   }
-  .wrap{ max-width: 1400px; margin: 0 auto; }
+  .wrap{ max-width: 1600px; margin: 0 auto; }
 
   /* ---------- LAYOUT GERAL: CONTEÚDO + BARRA LATERAL DE ABAS ---------- */
   .station-layout{ display:flex; align-items:flex-start; gap:26px; }
@@ -191,6 +193,24 @@
     color: var(--text-dim); cursor:pointer;
   }
   .add-movie-btn:hover{ border-color: var(--teal); color: var(--teal); }
+  .history-btn{
+    font-family: var(--font-body); font-weight:700; font-size: 13.5px;
+    padding: 9px 16px; border-radius: 999px;
+    background: transparent; border:1px solid var(--line);
+    color: var(--text-dim); cursor:pointer;
+  }
+  .history-btn:hover, .history-btn.active{ border-color: var(--amber); color: var(--amber); background:var(--amber-dim); }
+
+  /* ---------- HISTÓRICO DE FILMES CONCLUÍDOS ---------- */
+  .history-panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .history-heading{ padding:22px 24px 16px; border-bottom:1px solid var(--line); }
+  .history-heading h2{ margin:0 0 5px; font-family:var(--font-display); font-size:20px; }
+  .history-heading p{ margin:0; color:var(--text-dim); font-size:13px; }
+  .history-table{ width:100%; border-collapse:collapse; min-width:720px; }
+  .history-table th, .history-table td{ padding:14px 16px; text-align:left; border-bottom:1px solid var(--line); font-size:13px; }
+  .history-table th{ color:var(--text-dim); font-size:11px; text-transform:uppercase; letter-spacing:.5px; }
+  .history-table tr:last-child td{ border-bottom:none; }
+  .history-empty{ padding:34px 24px; color:var(--text-dim); text-align:center; }
 
   /* ---------- EMPTY STATE ---------- */
   .empty{
@@ -260,6 +280,14 @@
     white-space:nowrap; align-self: flex-start;
   }
   .del-movie-btn:hover{ background: rgba(228,87,46,.25); }
+  .complete-movie-btn{
+    font-size:12px; font-weight:600; color:#a9c4ff; background:var(--blue-dim);
+    border:1px solid rgba(77,141,255,.45); padding:8px 12px; border-radius:8px;
+    cursor:pointer; white-space:nowrap; align-self:flex-start;
+  }
+  .complete-movie-btn:hover{ background:rgba(77,141,255,.25); }
+  .readonly-value{ color:var(--text); font-size:13px; font-weight:600; padding:8px 0; min-height:34px; }
+  .readonly-path{ color:var(--teal); font-family:var(--font-mono); font-size:13px; overflow-wrap:anywhere; }
 
   .path-row{
     padding: 16px 22px;
@@ -267,6 +295,19 @@
     display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;
   }
   .path-field{ flex: 1 1 380px; }
+  .path-audio-field{
+  margin-top: 14px;
+}
+
+.audio-path-label{
+  display: block;
+  margin-bottom: 7px;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-faint);
+  font-weight: 700;
+}
   .path-field .input-shell{
     display:flex; align-items:center; gap:8px;
     background: var(--bg); border: 1px solid var(--line); border-radius: 9px;
@@ -297,6 +338,37 @@
   .progress-seg.pendente{ background: repeating-linear-gradient(135deg, #3a3f4a 0 6px, #333842 6px 12px); }
   .progress-seg.fazendo{ background: linear-gradient(180deg,#ffc35c,#f2a93b); }
   .progress-seg.concluido{ background: linear-gradient(180deg,#4fe08b,#2fb968); }
+  .progress-seg.review-pendente{
+  background: repeating-linear-gradient(135deg,#3a3f4a 0 6px,#333842 6px 12px);
+}
+
+.progress-seg.review-andamento{
+  background: linear-gradient(180deg,#ffc35c,#f2a93b);
+}
+
+.progress-seg.review-revisado{
+  background: linear-gradient(180deg,#4fe08b,#2fb968);
+}
+
+.progress-seg.review-erro{
+  background: linear-gradient(180deg,#ff8f70,#e65c3d);
+}
+
+.progress-legend .sw.review-pendente{
+  background:#3a3f4a;
+}
+
+.progress-legend .sw.review-andamento{
+  background:#f2a93b;
+}
+
+.progress-legend .sw.review-revisado{
+  background:#39c879;
+}
+
+.progress-legend .sw.review-erro{
+  background:#e65c3d;
+}
   .progress-legend{ display:flex; gap:16px; margin-top:9px; flex-wrap:wrap; }
   .progress-legend .leg{ font-size:11.5px; color: var(--text-dim); display:flex; align-items:center; gap:6px; font-weight:600;}
   .progress-legend .sw{ width:9px; height:9px; border-radius:3px; }
@@ -316,11 +388,30 @@
     position: relative;
   }
   .editor-name-input{
-    font-family: var(--font-body); font-weight:800; font-size: 15.5px;
-    background: transparent; border:none; border-bottom: 2px solid transparent;
-    color: var(--text); padding: 3px 0; min-width: 140px;
-  }
-  .editor-name-input:focus{ outline:none; border-bottom-color: var(--amber); }
+  font-family: var(--font-body);
+  font-weight:800;
+  font-size:15.5px;
+  background:#000 !important;
+  color:#fff !important;
+  border:none;
+  border-bottom:2px solid transparent;
+  padding:3px 8px;
+  min-width:140px;
+}
+
+.editor-name-input:focus{
+  outline:none;
+  border-bottom-color:var(--amber);
+}
+  .editor-name-input option{
+  background:#000;
+  color:#fff;
+}
+
+.editor-name-input option{
+  background:#000 !important;
+  color:#fff !important;
+}
   .lang-badge{
     font-family: var(--font-mono); font-size:11px; font-weight:600; color: var(--text-dim);
     background: var(--bg); border:1px solid var(--line-soft); padding:4px 9px; border-radius:999px;
@@ -405,6 +496,7 @@
   select.status-select[data-v="pendente"]{ background-color: var(--gray-dim); color:#c4c9d2; }
   select.status-select[data-v="fazendo"]{ background-color: var(--blue-dim); color:#a9c4ff; }
   select.status-select[data-v="concluido"]{ background-color: var(--green-dim); color:#a2edbe; }
+  select.revstatus-select[data-v="pendente"]{ background-color: var(--gray-dim); color:#c4c9d2; }
   select.revstatus-select[data-v="andamento"]{ background-color: var(--blue-dim); color:#a9c4ff; }
   select.revstatus-select[data-v="revisado"]{ background-color: var(--green-dim); color:#a2edbe; }
   select.revstatus-select[data-v="erro"]{ background-color: var(--red-dim); color:#ff9d7a; }
@@ -496,6 +588,55 @@
   .auth-card .auth-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--line);}
   .auth-error{color:var(--red);font-size:12px;margin-top:10px;min-height:18px;}
   .user-session{font-size:12px;color:var(--text-dim);display:flex;gap:8px;align-items:center;}.logout-btn{cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--text-dim);padding:7px 10px;border-radius:7px;}
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.65);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+.modal-box{
+  width:min(420px,90vw);
+  background:var(--panel);
+  color:var(--text);
+  border-radius:14px;
+  padding:24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);
+}
+
+.modal-box h2{
+  margin-top:0;
+  margin-bottom:20px;
+}
+
+.modal-box label{
+  display:block;
+  margin-top:12px;
+  margin-bottom:6px;
+  font-weight:600;
+}
+
+.modal-box input,
+.modal-box select{
+  width:100%;
+  box-sizing:border-box;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--input);
+  color:var(--text);
+}
+
+.new-user-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:20px;
+}
+  
 </style>
 </head>
 <body>
@@ -507,7 +648,6 @@
     <input id="authEmail" type="email" placeholder="E-mail">
     <input id="authPassword" type="password" placeholder="Senha">
     <button onclick="signIn()">Entrar</button>
-    <button class="auth-secondary" onclick="signUp()">Criar conta</button>
     <div class="auth-error" id="authError"></div>
   </div>
 </div>
@@ -527,8 +667,9 @@
             <button class="theme-btn" id="themeBtnDark" onclick="setTheme('dark')">Dark</button>
             <button class="theme-btn" id="themeBtnLight" onclick="setTheme('light')">White</button>
           </div>
-          <button class="io-btn" onclick="document.getElementById('importFile').click()">Importar dados</button>
-          <button class="io-btn primary" onclick="exportData()">Exportar dados</button>
+          <button class="io-btn" id="importBtn" onclick="document.getElementById('importFile').click()">Importar dados</button>
+          <button class="io-btn primary" id="exportBtn" onclick="exportData()">Exportar dados</button>
+          <button class="io-btn" id="newUserBtn" onclick="openNewUserModal()">+ Novo usuário</button>
           <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(this.files[0])">
         </div>
       </div>
@@ -560,6 +701,8 @@ let supabaseClient = null;
 let currentUser = null;
 let cloudSaveTimer = null;
 let cloudEnabled = false;
+let currentAccess = { role:'editor', editorName:'' };
+let stationUsers = [];
 
 const DEPTS = [
   { key:'vocal', label:'Vocal' },
@@ -620,16 +763,134 @@ const LANGUAGES = [...LANGUAGES_RAW].sort((a, b) => {
    ========================================================================== */
 
 let movies = [];
+let completedMovies = [];
 let activeId = null;
 let activeDept = 'vocal';
+let currentView = 'production';
 let openPickerFor = null;
 let pickerSearch = '';
 let storageOk = true;
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
+function isAdmin(){ return currentAccess.role === 'admin'; }
+function isChief(){ return currentAccess.role === 'chief'; }
+function canManageWork(){ return isAdmin() || isChief(); }
+function canDelete(){ return isAdmin(); }
+function canCompleteMovie(){ return isAdmin() || isChief(); }
+function canImport(){ return isAdmin(); }
+function canExport(){ return isAdmin() || isChief(); }
+function normalizeName(value){ return (value || '').trim().toLocaleLowerCase('pt-BR'); }
+function ownsEditor(editor){
+  return currentAccess.role === 'editor'
+    && editor
+    && editor.user_id
+    && currentUser
+    && editor.user_id === currentUser.id;
+}
+
+function canEditTask(editor, field){
+  // Administrador pode alterar tudo
+  if(isAdmin()) return true;
+
+  // Chief pode gerenciar a tarefa,
+  // mas não pode alterar as datas
+  if(isChief()){
+    return ['urgencia', 'revisor', 'statusRevisao', 'status'].includes(field);
+  }
+
+  // Editor só pode alterar as próprias datas e status
+  return ownsEditor(editor)
+    && ['inicio', 'entrega', 'status'].includes(field);
+}
+function readOnlyValue(value, className=''){
+  return `<div class="readonly-value ${className}">${esc(value) || '—'}</div>`;
+}
+async function loadAccess(user){
+  currentAccess = { role:'editor', editorName:'' };
+  if(!cloudEnabled || !supabaseClient || !user) return;
+  const { data, error } = await supabaseClient
+    .from('station_user_access')
+    .select('role, editor_name')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if(error){ console.error('Falha ao carregar perfil de acesso', error); return; }
+  if(data) currentAccess = { role:data.role || 'editor', editorName:data.editor_name || '' };
+}
+  async function loadStationUsers(){
+  stationUsers = [];
+
+  if(!cloudEnabled || !supabaseClient) return;
+
+  const { data, error } = await supabaseClient
+    .from('station_user_access')
+    .select('user_id, role, editor_name')
+   .in('role', ['editor', 'chief'])
+    .order('editor_name', { ascending:true });
+
+  if(error){
+    console.error('Falha ao carregar usuários da estação', error);
+    return;
+  }
+
+  stationUsers = data || [];
+}
+ function assignEditorUser(movieId, editorId, userId){
+  if(!canManageWork()) return;
+
+  const m = movies.find(movie => movie.id === movieId);
+  if(!m) return;
+
+  const editor = m.depts.vocal.editors.find(item => item.id === editorId);
+  if(!editor) return;
+
+  const user = stationUsers.find(item => item.user_id === userId);
+  if(!user) return;
+
+  editor.user_id = user.user_id;
+  editor.nome = user.editor_name || '';
+
+  saveData();
+  render();
+} 
+  function migrateEditorUserIds(){
+  if(!stationUsers.length) return;
+
+  let changed = false;
+
+  movies.forEach(movie => {
+    Object.values(movie.depts || {}).forEach(dept => {
+      (dept.editors || []).forEach(editor => {
+
+        if(editor.user_id) return;
+
+        const user = stationUsers.find(
+          u => normalizeName(u.editor_name) === normalizeName(editor.nome)
+        );
+
+        if(user){
+          editor.user_id = user.user_id;
+          changed = true;
+        }
+      });
+    });
+  });
+
+  if(changed){
+    saveData();
+  }
+}
+function applyAccessUi(){
+  const importBtn = document.getElementById('importBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const newUserBtn = document.getElementById('newUserBtn');
+  if(importBtn) importBtn.style.display = canImport() ? 'inline-block' : 'none';
+  if(exportBtn) exportBtn.style.display = canExport() ? 'inline-block' : 'none';
+  if(newUserBtn) newUserBtn.style.display = isAdmin() ? 'inline-block' : 'none';
+}
+
 function blankLangRow(idioma){
-  return { id: uid(), idioma: idioma, inicio:'', entrega:'', urgencia:'media', status:'pendente', revisor:'', statusRevisao:'andamento' };
+  return { id: uid(), idioma: idioma, inicio:'', entrega:'', urgencia:'media', status:'pendente', revisor:'', statusRevisao:'pendente' };
 }
 function blankVocalEditor(n){
   return { id: uid(), nome: 'Editor ' + n, idiomas: [] };
@@ -645,7 +906,11 @@ function blankMovie(){
     musicaEditors.push(blankSimpleEditor(i));
   }
   return {
-    id: uid(), nome:'', caminho:'', poster:'',
+  id: uid(),
+nome:'',
+caminho51:'',
+caminho20:'',
+poster:'',
     depts: {
       vocal:   { editors: vocalEditors },
       efeitos: { editors: efeitosEditors },
@@ -675,6 +940,13 @@ function ensureMovieShape(m){
       if(!e.status) e.status = 'pendente';
     });
   });
+ if (m.caminho51 === undefined) {
+  m.caminho51 = m.caminho || '';
+}
+
+if (m.caminho20 === undefined) {
+  m.caminho20 = '';
+}
   return m;
 }
 
@@ -715,7 +987,7 @@ function migrateV2ToV3(v2){
           idiomas: (e.idiomas || []).map(r => ({
             id: r.id || uid(), idioma: r.idioma, inicio: r.inicio || '', entrega: r.entrega || '',
             urgencia: r.urgencia || 'media', status: r.status || 'pendente',
-            revisor: r.revisor || '', statusRevisao: r.statusRevisao || 'andamento'
+            revisor: r.revisor || '', statusRevisao: r.statusRevisao || 'pendente'
           }))
         })) };
       } else {
@@ -764,6 +1036,7 @@ function loadData(){
     if(raw){
       const parsed = JSON.parse(raw);
       movies = Array.isArray(parsed.movies) ? parsed.movies : [];
+      completedMovies = Array.isArray(parsed.completedMovies) ? parsed.completedMovies : [];
       movies.forEach(ensureMovieShape);
       activeId = parsed.activeMovieId || (movies[0] && movies[0].id) || null;
     }else{
@@ -783,6 +1056,7 @@ function loadData(){
     }
   }catch(e){
     movies = [];
+    completedMovies = [];
     activeId = null;
   }
   if(!activeId && movies.length) activeId = movies[0].id;
@@ -793,7 +1067,7 @@ function loadData(){
 
 function saveData(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, activeMovieId: activeId }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, completedMovies, activeMovieId: activeId }));
     storageOk = true;
   }catch(e){
     console.error('Falha ao salvar localmente', e);
@@ -811,7 +1085,7 @@ function scheduleCloudSave(){
 async function saveCloudData(){
   if(!cloudEnabled || !supabaseClient || !currentUser) return;
   try{
-    const payload = { movies, activeMovieId: activeId, activeDept };
+    const payload = { movies, completedMovies, activeMovieId: activeId, activeDept };
     const { error } = await supabaseClient.from(CLOUD_TABLE).upsert({
       id: CLOUD_ROW_ID,
       payload,
@@ -831,10 +1105,11 @@ async function loadCloudData(){
   if(data && data.payload){
     const payload = data.payload;
     movies = Array.isArray(payload.movies) ? payload.movies : [];
+    completedMovies = Array.isArray(payload.completedMovies) ? payload.completedMovies : [];
     movies.forEach(ensureMovieShape);
     activeId = payload.activeMovieId || (movies[0] && movies[0].id) || null;
     activeDept = payload.activeDept || 'vocal';
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, activeMovieId: activeId })); }catch(e){}
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, completedMovies, activeMovieId: activeId })); }catch(e){}
     return true;
   }
   return false;
@@ -855,7 +1130,8 @@ function applyDeptTheme(){
 }
 
 function exportData(){
-  const blob = new Blob([JSON.stringify({ movies, activeMovieId: activeId }, null, 2)], { type:'application/json' });
+  if(!canExport()) return;
+  const blob = new Blob([JSON.stringify({ movies, completedMovies, activeMovieId: activeId }, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const date = new Date().toISOString().slice(0,10);
@@ -868,6 +1144,7 @@ function exportData(){
 }
 
 function importData(file){
+  if(!canImport()) return;
   if(!file) return;
   const reader = new FileReader();
   reader.onload = function(evt){
@@ -879,6 +1156,7 @@ function importData(file){
         activeId = migrated.activeMovieId;
       }else if(parsed && Array.isArray(parsed.movies)){
         movies = parsed.movies;
+        completedMovies = Array.isArray(parsed.completedMovies) ? parsed.completedMovies : [];
         movies.forEach(ensureMovieShape);
         activeId = parsed.activeMovieId || (movies[0] && movies[0].id) || null;
       }else if(parsed && (parsed.vocal || parsed.efeitos || parsed.musica)){
@@ -912,6 +1190,7 @@ function loadTheme(){
 }
 
 function addMovie(){
+  if(!canManageWork()) return;
   const m = blankMovie();
   movies.unshift(m);
   activeId = m.id;
@@ -920,6 +1199,7 @@ function addMovie(){
 }
 
 function deleteMovie(id){
+  if(!canDelete()) return;
   if(!confirm('Remover este filme e todos os dados associados (Vocal + Efeitos + Música)?')) return;
   movies = movies.filter(m=>m.id!==id);
   if(activeId===id) activeId = movies.length ? movies[0].id : null;
@@ -927,7 +1207,34 @@ function deleteMovie(id){
   render();
 }
 
+function completeMovie(id){
+  if(!canCompleteMovie()) return;
+  const movie = movies.find(m => m.id === id);
+  if(!movie) return;
+  if(!confirm('Marcar este filme como concluído? Ele sairá da lista de produção e será adicionado ao histórico.')) return;
+
+  const entries = movie.depts.vocal.editors.flatMap(editor =>
+    editor.idiomas.map(row => ({
+      idioma: row.idioma || 'Não informado',
+      editor: editor.nome || 'Não informado',
+      revisor: row.revisor || 'Não informado'
+    }))
+  );
+  completedMovies.unshift({
+    id: uid(),
+    nome: movie.nome || 'Sem título',
+    concluidoEm: new Date().toISOString(),
+    entries: entries.length ? entries : [{ idioma:'Não informado', editor:'Não informado', revisor:'Não informado' }]
+  });
+  movies = movies.filter(m => m.id !== id);
+  if(activeId === id) activeId = movies.length ? movies[0].id : null;
+  currentView = 'history';
+  saveData();
+  render();
+}
+
 function addEditorRow(movieId){
+  if(!canManageWork()) return;
   const m = movies.find(m=>m.id===movieId);
   const arr = m.depts[activeDept].editors;
   arr.push(activeDept === 'vocal' ? blankVocalEditor(arr.length+1) : blankSimpleEditor(arr.length+1));
@@ -936,6 +1243,7 @@ function addEditorRow(movieId){
 }
 
 function removeEditorRow(movieId, editorId){
+  if(!canDelete()) return;
   const m = movies.find(m=>m.id===movieId);
   m.depts[activeDept].editors = m.depts[activeDept].editors.filter(e=>e.id!==editorId);
   saveData();
@@ -943,6 +1251,7 @@ function removeEditorRow(movieId, editorId){
 }
 
 function updateEditorName(movieId, editorId, value){
+  if(!canManageWork()) return;
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts.vocal.editors.find(e=>e.id===editorId);
   e.nome = value;
@@ -950,6 +1259,7 @@ function updateEditorName(movieId, editorId, value){
 }
 
 function updateMovieField(movieId, field, value){
+  if(!isAdmin()) return;
   const m = movies.find(m=>m.id===movieId);
   m[field] = value;
   saveData();
@@ -958,6 +1268,7 @@ function updateMovieField(movieId, field, value){
 function updateLangRowField(movieId, editorId, rowId, field, value){
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts.vocal.editors.find(e=>e.id===editorId);
+  if(!canEditTask(e, field)) return;
   const row = e.idiomas.find(r=>r.id===rowId);
   row[field] = value;
   if(field==='status' && value==='concluido'){
@@ -972,6 +1283,7 @@ function updateLangRowField(movieId, editorId, rowId, field, value){
 function updateSimpleEditorField(movieId, editorId, field, value){
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts[activeDept].editors.find(e=>e.id===editorId);
+  if(!canEditTask(e, field)) return;
   e[field] = value;
   if(field==='status' && value==='concluido'){
     e.entrega = todayISO();
@@ -991,6 +1303,7 @@ function todayISO(){
 }
 
 function removeLangRow(movieId, editorId, rowId){
+  if(!canDelete()) return;
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts.vocal.editors.find(e=>e.id===editorId);
   e.idiomas = e.idiomas.filter(r=>r.id!==rowId);
@@ -999,6 +1312,7 @@ function removeLangRow(movieId, editorId, rowId){
 }
 
 function toggleLangPicker(editorId){
+  if(!canManageWork()) return;
   openPickerFor = (openPickerFor === editorId) ? null : editorId;
   pickerSearch = '';
   render();
@@ -1011,6 +1325,7 @@ function toggleLangPicker(editorId){
 }
 
 function addLanguageRow(movieId, editorId, lang){
+  if(!canManageWork()) return;
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts.vocal.editors.find(e=>e.id===editorId);
   if(!e.idiomas.some(r=>r.idioma===lang)){
@@ -1027,11 +1342,13 @@ function onPickerSearch(value){
 }
 
 function triggerPosterUpload(movieId){
+  if(!isAdmin()) return;
   const inp = document.getElementById('posterInput-'+movieId);
   if(inp) inp.click();
 }
 
 function handlePosterUpload(movieId, file){
+  if(!isAdmin()) return;
   if(!file) return;
   if(!/^image\/jpe?g$/i.test(file.type)){
     alert('Por favor selecione uma imagem no formato JPEG (.jpg ou .jpeg).');
@@ -1054,20 +1371,31 @@ function handlePosterUpload(movieId, file){
 }
 
 function removePoster(movieId, ev){
+  if(!isAdmin()) return;
   if(ev) ev.stopPropagation();
   const m = movies.find(m=>m.id===movieId);
   m.poster = '';
   saveData();
   render();
 }
+function copyPath(movieId, field, buttonId){
+  const m = movies.find(m => m.id === movieId);
+  const value = m ? (m[field] || '') : '';
 
-function copyPath(movieId){
-  const m = movies.find(m=>m.id===movieId);
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(m.caminho || '').catch(()=>{});
+    navigator.clipboard.writeText(value).catch(()=>{});
   }
-  const btn = document.getElementById('copyBtn-'+movieId);
-  if(btn){ const old = btn.textContent; btn.textContent = 'Copiado!'; setTimeout(()=>btn.textContent=old, 1200); }
+
+  const btn = document.getElementById(buttonId);
+
+  if(btn){
+    const old = btn.textContent;
+    btn.textContent = 'Copiado!';
+
+    setTimeout(() => {
+      btn.textContent = old;
+    }, 1200);
+  }
 }
 
 function esc(s){
@@ -1137,7 +1465,51 @@ function renderMovieTabs(){
     return `<div class="movie-chip ${m.id===activeId?'active':''}" id="tab-${m.id}" onclick="selectMovie('${m.id}')">
       ${esc(m.nome) || 'Sem título'} <span class="count">${done}/${total}</span>
     </div>`;
-  }).join('') + `<button class="add-movie-btn" onclick="addMovie()">+ Novo Filme</button>`;
+  }).join('') + `${canManageWork() ? `<button class="add-movie-btn" onclick="showProduction(); addMovie()">+ Novo Filme</button>` : ''}
+    <button class="history-btn ${currentView==='history'?'active':''}" onclick="showHistory()">Histórico de filmes concluídos</button>`;
+}
+
+function showProduction(){
+  currentView = 'production';
+  render();
+}
+
+function showHistory(){
+  currentView = 'history';
+  render();
+}
+
+function formatCompletionDate(value){
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Data não informada' : date.toLocaleDateString('pt-BR');
+}
+
+function historyRows(){
+  return completedMovies.flatMap(movie => {
+    const entries = Array.isArray(movie.entries) && movie.entries.length ? movie.entries : [{ idioma:'Não informado', editor:'Não informado', revisor:'Não informado' }];
+    return entries.map(entry => `
+      <tr>
+        <td>${esc(movie.nome) || 'Sem título'}</td>
+        <td>${esc(entry.idioma) || 'Não informado'}</td>
+        <td>${esc(entry.editor) || 'Não informado'}</td>
+        <td>${esc(entry.revisor) || 'Não informado'}</td>
+        <td>${formatCompletionDate(movie.concluidoEm)}</td>
+      </tr>`);
+  }).join('');
+}
+
+function historyHtml(){
+  const rows = historyRows();
+  return `
+    <section class="history-panel">
+      <div class="history-heading">
+        <h2>Histórico de filmes concluídos</h2>
+        <p>Filmes removidos da produção após a conclusão.</p>
+      </div>
+      ${rows ? `<div class="table-scroll"><table class="history-table"><thead><tr>
+        <th>Filme</th><th>Idioma</th><th>Editor responsável</th><th>Revisor</th><th>Data de conclusão</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>` : `<div class="history-empty">Ainda não há filmes concluídos.</div>`}
+    </section>`;
 }
 
 function renderDeptTabs(m){
@@ -1158,6 +1530,7 @@ function renderDeptTabs(m){
 
 function selectMovie(id){
   activeId = id;
+  currentView = 'production';
   openPickerFor = null;
   saveData();
   render();
@@ -1169,9 +1542,16 @@ function syncTabName(id, value){
 }
 
 function render(){
+  applyAccessUi();
   renderMovieTabs();
   const content = document.getElementById('content');
   const deptWrap = document.getElementById('deptTabs');
+
+  if(currentView === 'history'){
+    deptWrap.innerHTML = '';
+    content.innerHTML = historyHtml();
+    return;
+  }
 
   if(!movies.length){
     deptWrap.innerHTML = '';
@@ -1179,7 +1559,7 @@ function render(){
       <div class="empty">
         <h2>Nenhum filme cadastrado</h2>
         <p>Crie o primeiro filme para começar a distribuir o trabalho entre Vocal, Efeitos e Música.</p>
-        <button onclick="addMovie()">+ Novo Filme</button>
+        ${canManageWork() ? `<button onclick="addMovie()">+ Novo Filme</button>` : ''}
       </div>`;
     return;
   }
@@ -1200,13 +1580,14 @@ function render(){
       ${pathRowHtml(m)}
       ${overallProgressHtml(stagePct, overallPct)}
       ${stageProgressHtml(m, activeDept)}
+      ${activeDept === 'vocal' ? reviewProgressHtml(m) : ''}
       <div class="editors-wrap">
         ${activeDept === 'vocal'
           ? m.depts.vocal.editors.map(e => vocalEditorGroupHtml(m.id, e)).join('')
           : simpleEditorsTableHtml(m.id, m.depts[activeDept].editors)}
       </div>
       <div class="panel-footer">
-        <button class="add-editor-btn" onclick="addEditorRow('${m.id}')">+ Adicionar editor</button>
+        ${canManageWork() ? `<button class="add-editor-btn" onclick="addEditorRow('${m.id}')">+ Adicionar editor</button>` : '<span></span>'}
         <span class="hint">Clique nos campos para editar — salvamento automático e sincronização pela conta</span>
       </div>
     </div>
@@ -1214,23 +1595,31 @@ function render(){
 }
 
 function movieHeaderHtml(m){
+  const poster = m.poster ? `<img src="${m.poster}" alt="Pôster do filme">` : `<span class="poster-plus">+</span>`;
+  const posterHtml = isAdmin()
+    ? `<div class="poster-upload" onclick="triggerPosterUpload('${m.id}')" title="${m.poster ? 'Clique para trocar o pôster' : 'Adicionar pôster (JPEG)'}">
+        ${poster}
+        ${m.poster ? `<button class="poster-remove" onclick="removePoster('${m.id}', event)" title="Remover pôster">✕</button>` : ''}
+        <input type="file" id="posterInput-${m.id}" accept="image/jpeg" style="display:none" onchange="handlePosterUpload('${m.id}', this.files[0])">
+      </div>`
+    : `<div class="poster-upload" title="Somente o administrador pode alterar o pôster">${poster}</div>`;
+  const titleHtml = isAdmin()
+    ? `<input type="text" placeholder="Ex: A Última Sessão" value="${esc(m.nome)}"
+        oninput="updateMovieField('${m.id}','nome', this.value); syncTabName('${m.id}', this.value)">`
+    : `<div class="readonly-value">${esc(m.nome) || 'Sem título'}</div>`;
   return `
     <div class="movie-header">
       <div class="movie-identity">
-        <div class="poster-upload" onclick="triggerPosterUpload('${m.id}')" title="${m.poster ? 'Clique para trocar o pôster' : 'Adicionar pôster (JPEG)'}">
-          ${m.poster ? `
-            <img src="${m.poster}" alt="Pôster do filme">
-            <button class="poster-remove" onclick="removePoster('${m.id}', event)" title="Remover pôster">✕</button>
-          ` : `<span class="poster-plus">+</span>`}
-          <input type="file" id="posterInput-${m.id}" accept="image/jpeg" style="display:none" onchange="handlePosterUpload('${m.id}', this.files[0])">
-        </div>
+        ${posterHtml}
         <div class="movie-title-field">
           <span class="field-label">Nome do Filme</span>
-          <input type="text" placeholder="Ex: A Última Sessão" value="${esc(m.nome)}"
-            oninput="updateMovieField('${m.id}','nome', this.value); syncTabName('${m.id}', this.value)">
+          ${titleHtml}
         </div>
       </div>
-      <button class="del-movie-btn" onclick="deleteMovie('${m.id}')">Remover filme</button>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        ${canDelete() ? `<button class="del-movie-btn" onclick="deleteMovie('${m.id}')">Remover filme</button>` : ''}
+        ${canCompleteMovie() ? `<button class="complete-movie-btn" onclick="completeMovie('${m.id}')">Filme concluído</button>` : ''}
+      </div>
     </div>
   `;
 }
@@ -1239,17 +1628,511 @@ function pathRowHtml(m){
   return `
     <div class="path-row">
       <div class="path-field">
+
         <span class="field-label">Caminho para download dos arquivos</span>
-        <div class="input-shell">
-          <input type="text" id="pathInput-${m.id}" placeholder="Ex: //servidor/projetos/filme_x/audio_bruto ou link do Drive"
-            value="${esc(m.caminho)}" oninput="updateMovieField('${m.id}','caminho', this.value)">
-          <button class="copy-btn" id="copyBtn-${m.id}" onclick="copyPath('${m.id}')">Copiar</button>
+
+        <!-- DRIVE EXISTENTE -->
+        <div class="path-audio-field">
+          <span class="audio-path-label">DRIVE</span>
+
+          <div class="input-shell">
+            <input
+              type="text"
+              id="driveInput-${m.id}"
+              placeholder="Caminho ou link do Drive"
+              value="${esc(m.drive || '')}"
+              oninput="updateMovieField('${m.id}', 'drive', this.value)"
+            >
+
+            <button
+              class="copy-btn"
+              id="copyBtnDrive-${m.id}"
+              onclick="copyPath('${m.id}', 'drive', 'copyBtnDrive-${m.id}')"
+            >
+              Copiar
+            </button>
+          </div>
         </div>
+
+        <!-- LINKS DOS FILMES -->
+        <div class="movie-links-section">
+
+          <!-- PRIMEIRO LINK FIXO -->
+          <div
+            id="movie-link-${m.id}-primary"
+            class="path-audio-field"
+          >
+
+            <!-- IDIOMAS -->
+            <div
+              class="movie-link-languages"
+              style="margin-bottom:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"
+            >
+
+              <button
+                type="button"
+                onclick="addMovieLanguage('movie-link-${m.id}-primary')"
+                style="background:#374151; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;"
+              >
+                ＋ Idioma
+              </button>
+
+            </div>
+
+            <span class="audio-path-label">LINK</span>
+
+            <div class="input-shell">
+
+              <input
+                type="text"
+                placeholder="Caminho ou link do filme"
+              >
+
+              <button
+                class="copy-btn"
+                type="button"
+                onclick="navigator.clipboard.writeText(this.previousElementSibling.value)"
+              >
+                Copiar
+              </button>
+
+              <button
+                type="button"
+                onclick="document.getElementById('movie-link-${m.id}-primary').querySelector('input').value=''"
+                style="background:#dc2626; color:#ffffff; border:none; width:32px; height:32px; border-radius:6px; cursor:pointer; font-size:18px; font-weight:bold; line-height:1;"
+                title="Limpar link"
+              >
+                ×
+              </button>
+
+            </div>
+
+          </div>
+
+          <!-- BOTÃO PARA ADICIONAR OUTROS LINKS -->
+          <button
+            type="button"
+            class="add-movie-link-btn"
+            onclick="addMovieLink('${m.id}')"
+            style="background:#22c55e; color:#ffffff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600;"
+          >
+            <span class="add-movie-link-icon">＋</span>
+            Adicionar mais um link
+          </button>
+
+          <div
+            id="movieLinks-${m.id}"
+            class="movie-links-list"
+          >
+          </div>
+
+        </div>
+
       </div>
     </div>
   `;
 }
+  function getCountryFlag(countryCode) {
+  const code = String(countryCode || '').trim().toUpperCase();
 
+  if (!/^[A-Z]{2}$/.test(code)) {
+    return '🏳️';
+  }
+
+  return [...code]
+    .map(char => String.fromCodePoint(127397 + char.charCodeAt(0)))
+    .join('');
+}
+function addMovieLanguage(linkId) {
+  const linkRow = document.getElementById(linkId);
+
+  if (!linkRow) return;
+
+  const languagesContainer = linkRow.querySelector('.movie-link-languages');
+
+  if (!languagesContainer) return;
+
+  const oldMenu = languagesContainer.querySelector('.movie-language-menu');
+
+  if (oldMenu) {
+    oldMenu.remove();
+    return;
+  }
+
+  const languages = [
+    ['BR-51', 'BR', 'Português (BR) 5.1'],
+    ['BR-20', 'BR', 'Português (BR) 2.0'],
+    ['PT-51', 'PT', 'Português (PT) 5.1'],
+    ['PT-20', 'PT', 'Português (PT) 2.0'],
+    ['US-51', 'US', 'Inglês 5.1'],
+    ['US-20', 'US', 'Inglês 2.0'],
+    ['ES-51', 'ES', 'Espanhol 5.1'],
+    ['ES-20', 'ES', 'Espanhol 2.0'],
+    ['MX-51', 'MX', 'Espanhol (LATAM) 5.1'],
+    ['MX-20', 'MX', 'Espanhol (LATAM) 2.0'],
+    ['FR-51', 'FR', 'Francês 5.1'],
+    ['FR-20', 'FR', 'Francês 2.0'],
+    ['DE-51', 'DE', 'Alemão 5.1'],
+    ['DE-20', 'DE', 'Alemão 2.0'],
+    ['IT-51', 'IT', 'Italiano 5.1'],
+    ['IT-20', 'IT', 'Italiano 2.0'],
+    ['NL-51', 'NL', 'Holandês 5.1'],
+    ['NL-20', 'NL', 'Holandês 2.0'],
+    ['RU-51', 'RU', 'Russo 5.1'],
+    ['RU-20', 'RU', 'Russo 2.0'],
+    ['PL-51', 'PL', 'Polonês 5.1'],
+    ['PL-20', 'PL', 'Polonês 2.0'],
+    ['UA-51', 'UA', 'Ucraniano 5.1'],
+    ['UA-20', 'UA', 'Ucraniano 2.0'],
+    ['SE-51', 'SE', 'Sueco 5.1'],
+    ['SE-20', 'SE', 'Sueco 2.0'],
+    ['NO-51', 'NO', 'Norueguês 5.1'],
+    ['NO-20', 'NO', 'Norueguês 2.0'],
+    ['DK-51', 'DK', 'Dinamarquês 5.1'],
+    ['DK-20', 'DK', 'Dinamarquês 2.0'],
+    ['FI-51', 'FI', 'Finlandês 5.1'],
+    ['FI-20', 'FI', 'Finlandês 2.0'],
+    ['GR-51', 'GR', 'Grego 5.1'],
+    ['GR-20', 'GR', 'Grego 2.0'],
+    ['TR-51', 'TR', 'Turco 5.1'],
+    ['TR-20', 'TR', 'Turco 2.0'],
+    ['SA-51', 'SA', 'Árabe 5.1'],
+    ['SA-20', 'SA', 'Árabe 2.0'],
+    ['IL-51', 'IL', 'Hebraico 5.1'],
+    ['IL-20', 'IL', 'Hebraico 2.0'],
+    ['IR-51', 'IR', 'Persa (Farsi) 5.1'],
+    ['IR-20', 'IR', 'Persa (Farsi) 2.0'],
+    ['IN-HI-51', 'IN', 'Hindi 5.1'],
+    ['IN-HI-20', 'IN', 'Hindi 2.0'],
+    ['BD-51', 'BD', 'Bengali 5.1'],
+    ['BD-20', 'BD', 'Bengali 2.0'],
+    ['PK-51', 'PK', 'Urdu 5.1'],
+    ['PK-20', 'PK', 'Urdu 2.0'],
+    ['IN-TA-51', 'IN', 'Tâmil 5.1'],
+    ['IN-TA-20', 'IN', 'Tâmil 2.0'],
+    ['IN-TE-51', 'IN', 'Telugu 5.1'],
+    ['IN-TE-20', 'IN', 'Telugu 2.0'],
+    ['CN-51', 'CN', 'Chinês (Mandarim) 5.1'],
+    ['CN-20', 'CN', 'Chinês (Mandarim) 2.0'],
+    ['HK-51', 'HK', 'Chinês (Cantonês) 5.1'],
+    ['HK-20', 'HK', 'Chinês (Cantonês) 2.0'],
+    ['JP-51', 'JP', 'Japonês 5.1'],
+    ['JP-20', 'JP', 'Japonês 2.0'],
+    ['KR-51', 'KR', 'Coreano 5.1'],
+    ['KR-20', 'KR', 'Coreano 2.0'],
+    ['VN-51', 'VN', 'Vietnamita 5.1'],
+    ['VN-20', 'VN', 'Vietnamita 2.0'],
+    ['TH-51', 'TH', 'Tailandês 5.1'],
+    ['TH-20', 'TH', 'Tailandês 2.0'],
+    ['ID-51', 'ID', 'Indonésio 5.1'],
+    ['ID-20', 'ID', 'Indonésio 2.0'],
+    ['MY-51', 'MY', 'Malaio 5.1'],
+    ['MY-20', 'MY', 'Malaio 2.0'],
+    ['PH-51', 'PH', 'Filipino (Tagalo) 5.1'],
+    ['PH-20', 'PH', 'Filipino (Tagalo) 2.0'],
+    ['HU-51', 'HU', 'Húngaro 5.1'],
+    ['HU-20', 'HU', 'Húngaro 2.0'],
+    ['CZ-51', 'CZ', 'Tcheco 5.1'],
+    ['CZ-20', 'CZ', 'Tcheco 2.0'],
+    ['SK-51', 'SK', 'Eslovaco 5.1'],
+    ['SK-20', 'SK', 'Eslovaco 2.0'],
+    ['RO-51', 'RO', 'Romeno 5.1'],
+    ['RO-20', 'RO', 'Romeno 2.0'],
+    ['BG-51', 'BG', 'Búlgaro 5.1'],
+    ['BG-20', 'BG', 'Búlgaro 2.0']
+  ];
+
+  const menu = document.createElement('div');
+
+  menu.className = 'movie-language-menu';
+
+  menu.style.cssText = `
+    position:absolute;
+    z-index:99999;
+    left:0;
+    top:100%;
+    margin-top:4px;
+    background:#1f2937;
+    border:1px solid #4b5563;
+    border-radius:8px;
+    padding:6px;
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    min-width:250px;
+    max-height:260px;
+    overflow-y:auto;
+    box-shadow:0 8px 20px rgba(0,0,0,.35);
+  `;
+
+  languages.forEach(function(language) {
+
+    const languageId = language[0];
+    const countryCode = language[1];
+    const name = language[2];
+
+    const option = document.createElement('div');
+
+    option.className = 'movie-language-option';
+    option.dataset.language = languageId;
+    option.dataset.country = countryCode;
+    option.dataset.name = name;
+
+    option.style.cssText = `
+      background:transparent;
+      color:#ffffff;
+      padding:8px 10px;
+      border-radius:6px;
+      cursor:pointer;
+      text-align:left;
+      font-size:12px;
+      font-weight:600;
+      width:100%;
+      box-sizing:border-box;
+    `;
+
+    option.innerHTML = `
+      <img
+        src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png"
+        alt=""
+        width="24"
+        height="18"
+        style="width:24px;height:18px;object-fit:cover;border-radius:2px;vertical-align:middle;margin-right:6px;"
+      >
+      <span>${name}</span>
+    `;
+
+    menu.appendChild(option);
+  });
+
+  languagesContainer.style.position = 'relative';
+  languagesContainer.appendChild(menu);
+
+  menu.addEventListener('click', function(event) {
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const option = event.target.closest('.movie-language-option');
+
+    if (!option) return;
+
+    const languageId = option.dataset.language;
+    const countryCode = option.dataset.country;
+    const name = option.dataset.name;
+
+    if (!languageId || !countryCode || !name) return;
+
+    const existingLanguages =
+      languagesContainer.querySelectorAll('.movie-language-tag');
+
+    for (const element of existingLanguages) {
+
+      if (element.dataset.language === languageId) {
+        return;
+      }
+
+    }
+
+    const languageElement = document.createElement('span');
+
+    languageElement.className = 'movie-language-tag';
+    languageElement.dataset.language = languageId;
+
+    languageElement.style.cssText = `
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      background:#374151;
+      color:#ffffff;
+      padding:4px 8px;
+      border-radius:6px;
+      font-size:12px;
+      font-weight:600;
+    `;
+
+    languageElement.innerHTML = `
+      <img
+        src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png"
+        alt=""
+        width="24"
+        height="18"
+        style="width:24px;height:18px;object-fit:cover;border-radius:2px;vertical-align:middle;"
+      >
+
+      <span>${name}</span>
+
+      <button
+        type="button"
+        class="remove-language-btn"
+        style="
+          background:none;
+          border:none;
+          color:#ffffff;
+          cursor:pointer;
+          font-size:14px;
+          padding:0;
+          line-height:1;
+        "
+        title="Remover idioma"
+      >
+        ×
+      </button>
+    `;
+
+    const addButton = languagesContainer.querySelector(':scope > button');
+
+    if (addButton) {
+      languagesContainer.insertBefore(languageElement, addButton);
+    } else {
+      languagesContainer.appendChild(languageElement);
+    }
+
+    const removeButton =
+      languageElement.querySelector('.remove-language-btn');
+
+    removeButton.addEventListener('click', function(removeEvent) {
+
+      removeEvent.preventDefault();
+      removeEvent.stopPropagation();
+
+      languageElement.remove();
+
+    });
+
+  });
+
+  setTimeout(function() {
+
+    function closeMenu(event) {
+
+      if (!languagesContainer.contains(event.target)) {
+
+        menu.remove();
+
+        document.removeEventListener(
+          'click',
+          closeMenu
+        );
+
+      }
+
+    }
+
+    document.addEventListener(
+      'click',
+      closeMenu
+    );
+
+  }, 0);
+
+}
+
+function updateMovieLanguageFlag(input) {
+  const value = input.value.trim().toUpperCase();
+
+  input.value = value;
+
+  const languageElement = input.closest('span');
+
+  if (!languageElement) return;
+
+  const flagElement = languageElement.querySelector('.language-flag');
+
+  if (!flagElement) return;
+
+  // Aceita códigos como PT-BR, EN-US, ES-ES, FR-FR etc.
+  const parts = value.split('-');
+
+  const countryCode = parts.length > 1
+    ? parts[1]
+    : parts[0];
+
+  if (/^[A-Z]{2}$/.test(countryCode)) {
+    flagElement.textContent = getCountryFlag(countryCode);
+  } else {
+    flagElement.textContent = '';
+  }
+}
+function addMovieLink(movieId) {
+  const container = document.getElementById(`movieLinks-${movieId}`);
+
+  if (!container) return;
+
+  const linkId = `movie-link-${movieId}-${Date.now()}`;
+
+  const linkRow = document.createElement('div');
+  linkRow.className = 'path-audio-field';
+  linkRow.id = linkId;
+
+  linkRow.innerHTML = `
+    <!-- IDIOMAS DESTE LINK -->
+    <div
+      class="movie-link-languages"
+      style="margin-bottom:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"
+    >
+
+      <button
+        type="button"
+        onclick="addMovieLanguage('${linkId}')"
+        style="
+          background:#374151;
+          color:#ffffff;
+          border:none;
+          padding:4px 8px;
+          border-radius:6px;
+          font-size:12px;
+          font-weight:600;
+          cursor:pointer;
+        "
+      >
+        ＋ Idioma
+      </button>
+
+    </div>
+
+    <span class="audio-path-label">LINK</span>
+
+    <div class="input-shell">
+
+      <input
+        type="text"
+        placeholder="Caminho ou link do filme"
+      >
+
+      <button
+        class="copy-btn"
+        type="button"
+        onclick="navigator.clipboard.writeText(this.previousElementSibling.value)"
+      >
+        Copiar
+      </button>
+
+      <button
+        type="button"
+        onclick="document.getElementById('${linkId}').remove()"
+        style="
+          background:#dc2626;
+          color:#ffffff;
+          border:none;
+          width:32px;
+          height:32px;
+          border-radius:6px;
+          cursor:pointer;
+          font-size:18px;
+          font-weight:bold;
+          line-height:1;
+        "
+        title="Excluir link"
+      >
+        ×
+      </button>
+
+    </div>
+  `;
+
+  container.appendChild(linkRow);
+}
 function overallProgressHtml(stagePct, overallPct){
   return `
     <div class="progress-block overall-block">
@@ -1302,11 +2185,67 @@ function stageProgressHtml(m, deptKey){
     </div>
   `;
 }
+function reviewProgressHtml(m){
+  const rows = m.depts.vocal.editors.flatMap(e => e.idiomas);
 
+  const counts = {
+    pendente: 0,
+    andamento: 0,
+    revisado: 0,
+    erro: 0
+  };
+
+  rows.forEach(r => {
+    if(counts[r.statusRevisao] !== undefined){
+      counts[r.statusRevisao]++;
+    }
+  });
+
+  const total = rows.length || 1;
+
+  const pctPendente = Math.round(counts.pendente / total * 100);
+  const pctAndamento = Math.round(counts.andamento / total * 100);
+  const pctRevisado = Math.round(counts.revisado / total * 100);
+  const pctErro = Math.round(counts.erro / total * 100);
+
+  return `
+    <div class="progress-block review-progress-block">
+      <div class="progress-top">
+        <span class="field-label">Progresso da Revisão</span>
+        <span class="progress-total">${counts.revisado}/${rows.length} revisões concluídas</span>
+      </div>
+
+      <div class="progress-track">
+        ${pctPendente>0?`<div class="progress-seg review-pendente" style="width:${pctPendente}%"></div>`:''}
+        ${pctAndamento>0?`<div class="progress-seg review-andamento" style="width:${pctAndamento}%"></div>`:''}
+        ${pctRevisado>0?`<div class="progress-seg review-revisado" style="width:${pctRevisado}%"></div>`:''}
+        ${pctErro>0?`<div class="progress-seg review-erro" style="width:${pctErro}%"></div>`:''}
+      </div>
+
+      <div class="progress-legend">
+        <div class="leg"><span class="sw review-pendente"></span>Pendente — ${pctPendente}%</div>
+        <div class="leg"><span class="sw review-andamento"></span>Em andamento — ${pctAndamento}%</div>
+        <div class="leg"><span class="sw review-revisado"></span>Revisado — ${pctRevisado}%</div>
+        <div class="leg"><span class="sw review-erro"></span>Erro encontrado — ${pctErro}%</div>
+      </div>
+    </div>
+  `;
+}
 /* ---------- ETAPA VOCAL (por idioma, com revisor) ---------- */
 
 function vocalEditorGroupHtml(movieId, e){
   const n = e.idiomas.length;
+  const editorName = canManageWork()
+  ? `<select class="editor-name-input"
+      onchange="assignEditorUser('${movieId}','${e.id}', this.value)">
+      <option value="">Selecionar editor</option>
+      ${stationUsers.map(user => `
+        <option value="${user.user_id}" ${e.user_id === user.user_id ? 'selected' : ''}>
+          ${esc(user.editor_name || 'Sem nome')}
+        </option>
+      `).join('')}
+    </select>`
+  : `<div class="readonly-value">${esc(e.nome) || 'Sem nome'}</div>`;
 
   let popover = '';
   if(openPickerFor === e.id){
@@ -1338,12 +2277,11 @@ function vocalEditorGroupHtml(movieId, e){
   return `
     <div class="editor-group">
       <div class="editor-group-header">
-        <input class="editor-name-input" type="text" value="${esc(e.nome)}" placeholder="Nome do editor"
-          oninput="updateEditorName('${movieId}','${e.id}', this.value)">
+        ${editorName}
         <span class="lang-badge">${n} idioma${n===1?'':'s'}</span>
         <div class="spacer"></div>
-        <button class="add-lang-inline-btn" onclick="event.stopPropagation(); toggleLangPicker('${e.id}')">+ Adicionar idioma</button>
-        <button class="rm-editor-btn" onclick="removeEditorRow('${movieId}','${e.id}')">Remover editor</button>
+        ${canManageWork() ? `<button class="add-lang-inline-btn" onclick="event.stopPropagation(); toggleLangPicker('${e.id}')">+ Adicionar idioma</button>` : ''}
+        ${canDelete() ? `<button class="rm-editor-btn" onclick="removeEditorRow('${movieId}','${e.id}')">Remover editor</button>` : ''}
         ${popover}
       </div>
       ${rows}
@@ -1352,48 +2290,55 @@ function vocalEditorGroupHtml(movieId, e){
 }
 
 function vocalLangRowHtml(movieId, editorId, r, idx){
+  const m = movies.find(movie => movie.id === movieId);
+  const editor = m.depts.vocal.editors.find(item => item.id === editorId);
+  const dateInput = (field, value) => canEditTask(editor, field)
+    ? `<input type="date" value="${esc(value)}" onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','${field}', this.value)">`
+    : readOnlyValue(value);
+  const statusInput = canEditTask(editor, 'status')
+    ? `<select class="status-select" data-v="${r.status}" onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','status', this.value)">
+        <option value="pendente" ${r.status==='pendente'?'selected':''}>Pendente</option>
+        <option value="fazendo" ${r.status==='fazendo'?'selected':''}>Fazendo</option>
+        <option value="concluido" ${r.status==='concluido'?'selected':''}>Concluído</option>
+      </select>`
+    : readOnlyValue(r.status === 'concluido' ? 'Concluído' : r.status === 'fazendo' ? 'Fazendo' : 'Pendente');
+  const managerFields = canManageWork();
   return `
     <div class="grid-row grid-body-row">
       <div class="urg-bar ${r.urgencia}"></div>
       <div class="lang-name">${esc(r.idioma)}</div>
       <div class="lang-index">${idx+1}</div>
       <div class="cell">
-        <input type="date" value="${esc(r.inicio)}"
-          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','inicio', this.value)">
+        ${dateInput('inicio', r.inicio)}
       </div>
       <div class="cell">
-        <input type="date" value="${esc(r.entrega)}"
-          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','entrega', this.value)">
+        ${dateInput('entrega', r.entrega)}
       </div>
       <div class="cell">
-        <select class="urg-select" data-v="${r.urgencia}"
+        ${managerFields ? `<select class="urg-select" data-v="${r.urgencia}"
           onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','urgencia', this.value)">
           <option value="baixa" ${r.urgencia==='baixa'?'selected':''}>Baixa</option>
           <option value="media" ${r.urgencia==='media'?'selected':''}>Média</option>
           <option value="alta" ${r.urgencia==='alta'?'selected':''}>Alta</option>
-        </select>
+        </select>` : readOnlyValue(r.urgencia)}
       </div>
       <div class="cell">
-        <input type="text" class="revisor-input" placeholder="Nome do revisor" value="${esc(r.revisor)}"
-          oninput="updateLangRowField('${movieId}','${editorId}','${r.id}','revisor', this.value)">
+        ${managerFields ? `<input type="text" class="revisor-input" placeholder="Nome do revisor" value="${esc(r.revisor)}"
+          oninput="updateLangRowField('${movieId}','${editorId}','${r.id}','revisor', this.value)">` : readOnlyValue(r.revisor)}
       </div>
       <div class="cell">
-        <select class="revstatus-select" data-v="${r.statusRevisao}"
+        ${managerFields ? `<select class="revstatus-select" data-v="${r.statusRevisao}"
           onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','statusRevisao', this.value)">
+          <option value="pendente" ${r.statusRevisao==='pendente'?'selected':''}>Pendente</option>
           <option value="andamento" ${r.statusRevisao==='andamento'?'selected':''}>Em andamento</option>
           <option value="revisado" ${r.statusRevisao==='revisado'?'selected':''}>Revisado</option>
           <option value="erro" ${r.statusRevisao==='erro'?'selected':''}>Erro encontrado</option>
-        </select>
+        </select>` : readOnlyValue(r.statusRevisao)}
       </div>
       <div class="cell">
-        <select class="status-select" data-v="${r.status}"
-          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','status', this.value)">
-          <option value="pendente" ${r.status==='pendente'?'selected':''}>Pendente</option>
-          <option value="fazendo" ${r.status==='fazendo'?'selected':''}>Fazendo</option>
-          <option value="concluido" ${r.status==='concluido'?'selected':''}>Concluído</option>
-        </select>
+        ${statusInput}
       </div>
-      <button class="rm-row-btn" onclick="removeLangRow('${movieId}','${editorId}','${r.id}')" title="Remover idioma">✕</button>
+      ${canDelete() ? `<button class="rm-row-btn" onclick="removeLangRow('${movieId}','${editorId}','${r.id}')" title="Remover idioma">✕</button>` : '<span></span>'}
     </div>
   `;
 }
@@ -1417,38 +2362,44 @@ function simpleEditorsTableHtml(movieId, editors){
 }
 
 function simpleEditorRowHtml(movieId, e){
+  const editorName = canManageWork()
+    ? `<input type="text" class="editor-name-input inline" placeholder="Nome do editor" value="${esc(e.nome)}"
+        oninput="updateSimpleEditorField('${movieId}','${e.id}','nome', this.value)">`
+    : readOnlyValue(e.nome);
+  const dateInput = (field, value) => canEditTask(e, field)
+    ? `<input type="date" value="${esc(value)}" onchange="updateSimpleEditorField('${movieId}','${e.id}','${field}', this.value)">`
+    : readOnlyValue(value);
+  const statusInput = canEditTask(e.nome, 'status')
+    ? `<select class="status-select" data-v="${e.status}" onchange="updateSimpleEditorField('${movieId}','${e.id}','status', this.value)">
+        <option value="pendente" ${e.status==='pendente'?'selected':''}>Pendente</option>
+        <option value="fazendo" ${e.status==='fazendo'?'selected':''}>Fazendo</option>
+        <option value="concluido" ${e.status==='concluido'?'selected':''}>Concluído</option>
+      </select>`
+    : readOnlyValue(e.status === 'concluido' ? 'Concluído' : e.status === 'fazendo' ? 'Fazendo' : 'Pendente');
   return `
     <div class="grid-row grid-body-row">
       <div class="urg-bar ${e.urgencia}"></div>
       <div class="cell">
-        <input type="text" class="editor-name-input inline" placeholder="Nome do editor" value="${esc(e.nome)}"
-          oninput="updateSimpleEditorField('${movieId}','${e.id}','nome', this.value)">
+        ${editorName}
       </div>
       <div class="cell">
-        <input type="date" value="${esc(e.inicio)}"
-          onchange="updateSimpleEditorField('${movieId}','${e.id}','inicio', this.value)">
+        ${dateInput('inicio', e.inicio)}
       </div>
       <div class="cell">
-        <input type="date" value="${esc(e.entrega)}"
-          onchange="updateSimpleEditorField('${movieId}','${e.id}','entrega', this.value)">
+        ${dateInput('entrega', e.entrega)}
       </div>
       <div class="cell">
-        <select class="urg-select" data-v="${e.urgencia}"
+        ${canManageWork() ? `<select class="urg-select" data-v="${e.urgencia}"
           onchange="updateSimpleEditorField('${movieId}','${e.id}','urgencia', this.value)">
           <option value="baixa" ${e.urgencia==='baixa'?'selected':''}>Baixa</option>
           <option value="media" ${e.urgencia==='media'?'selected':''}>Média</option>
           <option value="alta" ${e.urgencia==='alta'?'selected':''}>Alta</option>
-        </select>
+        </select>` : readOnlyValue(e.urgencia)}
       </div>
       <div class="cell">
-        <select class="status-select" data-v="${e.status}"
-          onchange="updateSimpleEditorField('${movieId}','${e.id}','status', this.value)">
-          <option value="pendente" ${e.status==='pendente'?'selected':''}>Pendente</option>
-          <option value="fazendo" ${e.status==='fazendo'?'selected':''}>Fazendo</option>
-          <option value="concluido" ${e.status==='concluido'?'selected':''}>Concluído</option>
-        </select>
+        ${statusInput}
       </div>
-      <button class="rm-row-btn" onclick="removeEditorRow('${movieId}','${e.id}')" title="Remover editor">✕</button>
+      ${canDelete() ? `<button class="rm-row-btn" onclick="removeEditorRow('${movieId}','${e.id}')" title="Remover editor">✕</button>` : '<span></span>'}
     </div>
   `;
 }
@@ -1456,7 +2407,107 @@ function simpleEditorRowHtml(movieId, e){
 document.addEventListener('click', () => {
   if(openPickerFor){ openPickerFor = null; render(); }
 });
+function openNewUserModal(){
+  if(!isAdmin()) return;
 
+  const modal = document.createElement('div');
+
+  modal.id = 'newUserModal';
+
+  modal.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-box">
+        <h2>Novo usuário</h2>
+
+        <label>Nome</label>
+        <input id="newUserName" type="text" placeholder="Nome do usuário">
+
+        <label>E-mail</label>
+        <input id="newUserEmail" type="email" placeholder="E-mail">
+
+        <label>Senha</label>
+        <input id="newUserPassword" type="password" placeholder="Senha">
+
+        <label>Função</label>
+        <select id="newUserRole">
+          <option value="editor">Editor</option>
+           <option value="chief">Chefe</option>
+          <option value="admin">Administrador</option>
+        </select>
+
+        <div class="new-user-actions">
+          <button class="io-btn" onclick="closeNewUserModal()">
+            Cancelar
+          </button>
+
+          <button class="io-btn primary" onclick="createNewUser()">
+            Cadastrar
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function closeNewUserModal(){
+  const modal = document.getElementById('newUserModal');
+  if(modal) modal.remove();
+}
+
+async function createNewUser(){
+  if(!isAdmin()) return;
+
+  const name = document.getElementById('newUserName').value.trim();
+  const email = document.getElementById('newUserEmail').value.trim();
+  const password = document.getElementById('newUserPassword').value;
+  const role = document.getElementById('newUserRole').value;
+
+  if(!name || !email || !password){
+    alert('Preencha nome, e-mail e senha.');
+    return;
+  }
+
+  if(password.length < 6){
+    alert('A senha deve ter pelo menos 6 caracteres.');
+    return;
+  }
+
+  try{
+    const { data, error } = await supabaseClient.functions.invoke('create-user', {
+      body: {
+        name,
+        email,
+        password,
+        role
+      }
+    });
+
+    if(error){
+      console.error('Erro ao criar usuário:', error);
+      alert(`Erro: ${error.message || error}`);
+      return;
+    }
+
+  if(!data?.success){
+  console.error('Resposta da Edge Function:', data);
+  alert(
+    `Erro: ${data?.error || 'Erro desconhecido'}`
+    + (data?.details ? `\n\nDetalhes: ${data.details}` : '')
+  );
+  return;
+}
+
+    alert(`Usuário ${name} criado com sucesso.`);
+
+    closeNewUserModal();
+
+  }catch(e){
+    console.error(e);
+    alert('Erro ao conectar com o servidor.');
+  }
+}
 async function initSupabase(){
   if(!SUPABASE_URL.startsWith('http') || SUPABASE_ANON_KEY.startsWith('COLE_AQUI')) return;
   try{
@@ -1469,7 +2520,11 @@ async function initSupabase(){
 
 async function onAuthenticated(user){
   currentUser = user;
-  const loaded = await loadCloudData();
+await loadAccess(user);
+await loadStationUsers();
+const loaded = await loadCloudData();
+
+migrateEditorUserIds();
   if(!loaded) saveCloudData();
   document.getElementById('authOverlay').style.display = 'none';
   document.getElementById('userSession').textContent = user.email || 'Usuário autenticado';
@@ -1498,7 +2553,7 @@ async function signUp(){
 
 async function signOut(){
   if(cloudEnabled && supabaseClient) await supabaseClient.auth.signOut();
-  currentUser=null; movies=[]; activeId=null;
+  currentUser=null; currentAccess={ role:'editor', editorName:'' }; movies=[]; activeId=null;
   document.getElementById('authOverlay').style.display='flex';
   document.getElementById('logoutBtn').style.display='none';
   document.getElementById('userSession').textContent='';

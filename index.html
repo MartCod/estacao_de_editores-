@@ -1922,24 +1922,23 @@ function addMovieLanguage(linkId) {
 
   menu.className = 'movie-language-menu';
 
-  menu.style.cssText = `
-    position:absolute;
-    z-index:99999;
-    left:0;
-    top:100%;
-    margin-top:4px;
-    background:#1f2937;
-    border:1px solid #4b5563;
-    border-radius:8px;
-    padding:6px;
-    display:flex;
-    flex-direction:column;
-    gap:3px;
-    min-width:250px;
-    max-height:260px;
-    overflow-y:auto;
-    box-shadow:0 8px 20px rgba(0,0,0,.35);
-  `;
+  menu.style.cssText =
+  'position:absolute;' +
+  'z-index:99999;' +
+  'left:0;' +
+  'top:100%;' +
+  'margin-top:4px;' +
+  'background:#1f2937;' +
+  'border:1px solid #4b5563;' +
+  'border-radius:8px;' +
+  'padding:6px;' +
+  'display:flex;' +
+  'flex-direction:column;' +
+  'gap:3px;' +
+  'min-width:250px;' +
+  'max-height:260px;' +
+  'overflow-y:auto;' +
+  'box-shadow:0 8px 20px rgba(0,0,0,.35);';
 
   languages.forEach(function(language) {
 

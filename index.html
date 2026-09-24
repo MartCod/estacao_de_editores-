@@ -1630,26 +1630,36 @@ function renderMovieTabs(){
       const number = String(index + 2).padStart(2, '0');
       const status = index === 0 ? 'PRÓXIMO' : 'NA FILA';
 
-      html += `
-        <div
-          class="queue-movie-card"
-          onclick="selectMovie('${m.id}')"
+    html += `
+  <div
+    class="queue-movie-card"
+    onclick="selectMovie('${m.id}')"
+  >
+    <div class="queue-number">
+      ${number}
+    </div>
+
+    <div class="queue-movie-info">
+      <div class="queue-status">
+        ${status}
+      </div>
+
+      <div class="queue-movie-name">
+        🎬 ${esc(m.nome) || 'Sem título'}
+      </div>
+
+      ${canManageWork() ? `
+        <button
+          type="button"
+          class="set-production-btn"
+          onclick="event.stopPropagation(); setProductionMovie('${m.id}')"
         >
-          <div class="queue-number">
-            ${number}
-          </div>
-
-          <div class="queue-movie-info">
-            <div class="queue-status">
-              ${status}
-            </div>
-
-            <div class="queue-movie-name">
-              🎬 ${esc(m.nome) || 'Sem título'}
-            </div>
-          </div>
-        </div>
-      `;
+          ▶ COLOCAR EM PRODUÇÃO
+        </button>
+      ` : ''}
+    </div>
+  </div>
+`;
     });
 
     html += `
@@ -1737,6 +1747,20 @@ function selectMovie(id){
   activeId = id;
   currentView = 'production';
   openPickerFor = null;
+  saveData();
+  render();
+}
+  function setProductionMovie(id){
+  if(!canManageWork()) return;
+
+  const movie = movies.find(m => m.id === id);
+  if(!movie) return;
+
+  productionMovieId = id;
+  activeId = id;
+  currentView = 'production';
+  openPickerFor = null;
+
   saveData();
   render();
 }

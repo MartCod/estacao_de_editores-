@@ -166,40 +166,176 @@
     .dept-tab{ flex:1 1 180px; }
   }
 
-  /* ---------- MOVIE TABS ---------- */
-  .movie-tabs{
-    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
-    margin-bottom: 22px;
-  }
-  .movie-chip{
-    font-family: var(--font-body); font-weight:600; font-size: 13.5px;
-    padding: 9px 16px; border-radius: 999px;
-    background: var(--panel); border:1px solid var(--line);
-    color: var(--text-dim); cursor:pointer;
-    transition: all .15s ease;
-    display:flex; align-items:center; gap:8px;
-  }
-  .movie-chip:hover{ border-color: var(--amber); color: var(--text); }
-  .movie-chip.active{ background: var(--amber); color:#1a1305; border-color: var(--amber); }
-  .movie-chip .count{
-    font-size: 11px; opacity:.8; background: rgba(0,0,0,.18);
-    padding: 1px 7px; border-radius:999px;
-  }
-  .movie-chip.active .count{ background: rgba(0,0,0,.22); }
-  .add-movie-btn{
-    font-family: var(--font-body); font-weight:700; font-size: 13.5px;
-    padding: 9px 16px; border-radius: 999px;
-    background: transparent; border:1.5px dashed var(--line);
-    color: var(--text-dim); cursor:pointer;
-  }
-  .add-movie-btn:hover{ border-color: var(--teal); color: var(--teal); }
-  .history-btn{
-    font-family: var(--font-body); font-weight:700; font-size: 13.5px;
-    padding: 9px 16px; border-radius: 999px;
-    background: transparent; border:1px solid var(--line);
-    color: var(--text-dim); cursor:pointer;
-  }
-  .history-btn:hover, .history-btn.active{ border-color: var(--amber); color: var(--amber); background:var(--amber-dim); }
+ /* ---------- MOVIE TABS / FILA DE PRODUÇÃO ---------- */
+
+.movie-tabs{
+  margin-bottom: 22px;
+}
+
+.production-queue{
+  width:100%;
+}
+
+/* FILME ATUAL */
+
+.current-movie-card{
+  width:100%;
+  box-sizing:border-box;
+  padding:24px 28px;
+  margin-bottom:22px;
+  border:2px solid var(--teal);
+  border-radius:16px;
+  background:linear-gradient(
+    135deg,
+    rgba(20,184,166,.12),
+    rgba(15,23,42,.55)
+  );
+  cursor:pointer;
+  transition:.18s ease;
+  box-shadow:0 8px 25px rgba(0,0,0,.18);
+}
+
+.current-movie-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 30px rgba(0,0,0,.25);
+}
+
+.current-movie-label{
+  font-family:var(--font-body);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.08em;
+  color:var(--teal);
+  margin-bottom:12px;
+}
+
+.current-movie-title{
+  font-family:var(--font-display);
+  font-size:25px;
+  font-weight:800;
+  color:var(--text);
+}
+
+/* TÍTULO DA FILA */
+
+.queue-title{
+  margin:4px 0 12px 4px;
+  font-family:var(--font-body);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.08em;
+  color:var(--text-dim);
+}
+
+/* PRÓXIMOS FILMES */
+
+.movie-queue-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:12px;
+}
+
+.queue-movie-card{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:82px;
+  padding:14px 16px;
+  box-sizing:border-box;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:var(--panel);
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.queue-movie-card:hover{
+  border-color:var(--amber);
+  transform:translateY(-2px);
+}
+
+.queue-number{
+  min-width:42px;
+  height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  background:var(--amber-dim);
+  color:var(--amber);
+  font-family:var(--font-display);
+  font-size:15px;
+  font-weight:800;
+}
+
+.queue-movie-info{
+  min-width:0;
+}
+
+.queue-status{
+  font-family:var(--font-body);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em;
+  color:var(--text-dim);
+  margin-bottom:5px;
+}
+
+.queue-movie-name{
+  font-family:var(--font-body);
+  font-size:14px;
+  font-weight:700;
+  color:var(--text);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* BOTÕES */
+
+.queue-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:18px;
+}
+
+.add-movie-btn{
+  font-family:var(--font-body);
+  font-weight:700;
+  font-size:13.5px;
+  padding:9px 16px;
+  border-radius:999px;
+  background:transparent;
+  border:1.5px dashed var(--line);
+  color:var(--text-dim);
+  cursor:pointer;
+}
+
+.add-movie-btn:hover{
+  border-color:var(--teal);
+  color:var(--teal);
+}
+
+.history-btn{
+  font-family:var(--font-body);
+  font-weight:700;
+  font-size:13.5px;
+  padding:9px 16px;
+  border-radius:999px;
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--text-dim);
+  cursor:pointer;
+}
+
+.history-btn:hover,
+.history-btn.active{
+  border-color:var(--amber);
+  color:var(--amber);
+  background:var(--amber-dim);
+}
 
   /* ---------- HISTÓRICO DE FILMES CONCLUÍDOS ---------- */
   .history-panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; }

@@ -777,6 +777,7 @@ function isAdmin(){ return currentAccess.role === 'admin'; }
 function isChief(){ return currentAccess.role === 'chief'; }
 function canManageWork(){ return isAdmin() || isChief(); }
 function canDelete(){ return isAdmin(); }
+function canManageLanguages(){ return isAdmin() || isChief(); }
 function canCompleteMovie(){ return isAdmin() || isChief(); }
 function canImport(){ return isAdmin(); }
 function canExport(){ return isAdmin() || isChief(); }
@@ -1303,7 +1304,7 @@ function todayISO(){
 }
 
 function removeLangRow(movieId, editorId, rowId){
-  if(!canDelete()) return;
+  if(!canManageWork()) return;
   const m = movies.find(m=>m.id===movieId);
   const e = m.depts.vocal.editors.find(e=>e.id===editorId);
   e.idiomas = e.idiomas.filter(r=>r.id!==rowId);
@@ -1460,13 +1461,64 @@ function deptStatusForMovie(m, deptKey){
 
 function renderMovieTabs(){
   const tabs = document.getElementById('movieTabs');
-  tabs.innerHTML = movies.map(m => {
-    const { done, total } = movieOverallCounts(m);
-    return `<div class="movie-chip ${m.id===activeId?'active':''}" id="tab-${m.id}" onclick="selectMovie('${m.id}')">
-      ${esc(m.nome) || 'Sem título'} <span class="count">${done}/${total}</span>
-    </div>`;
-  }).join('') + `${canManageWork() ? `<button class="add-movie-btn" onclick="showProduction(); addMovie()">+ Novo Filme</button>` : ''}
-    <button class="history-btn ${currentView==='history'?'active':''}" onclick="showHistory()">Histórico de filmes concluídos</button>`;
+
+  const activeMovie = movies.find(m => m.id === activeId);
+  const queueMovies = movies.filter(m => m.id !== activeId);
+
+  tabs.innerHTML = `
+    <div class="production-queue">
+
+      ${activeMovie ? `
+        <div class="current-movie-card" onclick="selectMovie('${activeMovie.id}')">
+          <div class="current-movie-label">
+            🟢 EDITANDO AGORA
+          </div>
+
+          <div class="current-movie-title">
+            🎬 ${esc(activeMovie.nome) || 'Sem título'}
+          </div>
+        </div>
+      ` : ''}
+
+      ${queueMovies.length ? `
+        <div class="queue-title">
+          ↓ PRÓXIMOS FILMES
+        </div>
+
+        <div class="movie-queue-list">
+          ${queueMovies.map((m, index) => `
+            <div class="queue-movie-card" onclick="selectMovie('${m.id}')">
+              <div class="queue-number">
+                ${String(index + 2).padStart(2, '0')}
+              </div>
+
+              <div class="queue-movie-info">
+                <div class="queue-status">
+                  ${index === 0 ? 'PRÓXIMO' : 'NA FILA'}
+                </div>
+
+                <div class="queue-movie-name">
+                  🎬 ${esc(m.nome) || 'Sem título'}
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      <div class="queue-actions">
+        ${canManageWork()
+          ? `<button class="add-movie-btn" onclick="showProduction(); addMovie()">+ Novo Filme</button>`
+          : ''
+        }
+
+        <button class="history-btn ${currentView==='history'?'active':''}" onclick="showHistory()">
+          Histórico de filmes concluídos
+        </button>
+      </div>
+
+    </div>
+  `;
 }
 
 function showProduction(){
@@ -1679,7 +1731,7 @@ function pathRowHtml(m){
 
             </div>
 
-            <span class="audio-path-label">LINK</span>
+            <span class="audio-path-label">LINK DOS ARQUIVOS</span>
 
             <div class="input-shell">
 
@@ -1709,29 +1761,102 @@ function pathRowHtml(m){
 
           </div>
 
-          <!-- BOTÃO PARA ADICIONAR OUTROS LINKS -->
-          <button
-            type="button"
-            class="add-movie-link-btn"
-            onclick="addMovieLink('${m.id}')"
-            style="background:#22c55e; color:#ffffff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600;"
-          >
-            <span class="add-movie-link-icon">＋</span>
-            Adicionar mais um link
-          </button>
+         <!-- BOTÃO PARA ADICIONAR OUTROS LINKS -->
+<div style="position:relative; display:inline-block;">
+${isAdmin() ? `
+  <button
+    type="button"
+    class="add-movie-link-btn"
+    onclick="toggleMovieLinkMenu('${m.id}')"
+    style="background:#22c55e; color:#ffffff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600;"
+  >
+    <span class="add-movie-link-icon">＋</span>
+    Adicionar mais um link
+  </button>
+` : ''}
 
-          <div
-            id="movieLinks-${m.id}"
-            class="movie-links-list"
-          >
-          </div>
+  <div
+    id="movieLinkMenu-${m.id}"
+    style="
+      display:none;
+      position:absolute;
+      left:0;
+      top:calc(100% + 6px);
+      background:#1f2937;
+      border:1px solid #374151;
+      border-radius:8px;
+      padding:6px;
+      min-width:180px;
+      z-index:9999;
+      box-shadow:0 8px 20px rgba(0,0,0,0.35);
+    "
+  >
 
-        </div>
+   <button
+  type="button"
+  onclick="selectMovieLinkType('${m.id}', 'Filmes 5.1')"
+  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
+>
+  Filmes 5.1
+</button>
 
-      </div>
-    </div>
-  `;
-}
+<button
+  type="button"
+  onclick="selectMovieLinkType('${m.id}', 'Filmes 2.0')"
+  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
+>
+  Filmes 2.0
+</button>
+
+<button
+  type="button"
+  onclick="selectMovieLinkType('${m.id}', 'Filmes_entrada')"
+  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
+>
+  Filmes_entrada
+</button>
+
+<button
+  type="button"
+  onclick="selectMovieLinkType('${m.id}', '6_channels')"
+  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
+>
+  6_channels
+</button>
+
+<button
+  type="button"
+  onclick="selectMovieLinkType('${m.id}', 'Filmes 7.1')"
+  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
+>
+  Filmes 7.1
+</button>
+
+<button
+  type="button"
+  onclick="selectMovieLinkType('${m.id}', 'Mono')"
+  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
+>
+  Mono
+</button>
+
+<button
+  type="button"
+  onclick="selectMovieLinkType('${m.id}', 'Stereo')"
+  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
+>
+  Stereo
+</button>
+
+  </div>
+
+</div>
+
+<div
+  id="movieLinks-${m.id}"
+  class="movie-links-list"
+>
+</div>
   function getCountryFlag(countryCode) {
   const code = String(countryCode || '').trim().toUpperCase();
 
@@ -1744,6 +1869,7 @@ function pathRowHtml(m){
     .join('');
 }
 function addMovieLanguage(linkId) {
+  if (!isAdmin()) return;
   const linkRow = document.getElementById(linkId);
 
   if (!linkRow) return;
@@ -2054,7 +2180,36 @@ function updateMovieLanguageFlag(input) {
     flagElement.textContent = '';
   }
 }
-function addMovieLink(movieId) {
+function toggleMovieLinkMenu(movieId) {
+  if (!isAdmin()) return;
+
+  const menu = document.getElementById(`movieLinkMenu-${movieId}`);
+
+  if (!menu) return;
+
+  const isVisible = menu.style.display === 'block';
+
+  document.querySelectorAll('[id^="movieLinkMenu-"]').forEach(function(otherMenu) {
+    otherMenu.style.display = 'none';
+  });
+
+  menu.style.display = isVisible ? 'none' : 'block';
+}
+
+
+function selectMovieLinkType(movieId, type) {
+  if (!isAdmin()) return;
+
+  const menu = document.getElementById(`movieLinkMenu-${movieId}`);
+
+  if (menu) {
+    menu.style.display = 'none';
+  }
+
+  addMovieLink(movieId, type);
+}
+function addMovieLink(movieId, type) {
+  if (!isAdmin()) return;
   const container = document.getElementById(`movieLinks-${movieId}`);
 
   if (!container) return;
@@ -2072,26 +2227,28 @@ function addMovieLink(movieId) {
       style="margin-bottom:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"
     >
 
-      <button
-        type="button"
-        onclick="addMovieLanguage('${linkId}')"
-        style="
-          background:#374151;
-          color:#ffffff;
-          border:none;
-          padding:4px 8px;
-          border-radius:6px;
-          font-size:12px;
-          font-weight:600;
-          cursor:pointer;
-        "
-      >
-        ＋ Idioma
-      </button>
+     ${isAdmin() ? `
+  <button
+    type="button"
+    onclick="addMovieLanguage('${linkId}')"
+    style="
+      background:#374151;
+      color:#ffffff;
+      border:none;
+      padding:4px 8px;
+      border-radius:6px;
+      font-size:12px;
+      font-weight:600;
+      cursor:pointer;
+    "
+  >
+    ＋ Idioma
+  </button>
+` : ''}
 
     </div>
 
-    <span class="audio-path-label">LINK</span>
+    <span class="audio-path-label">${type || 'LINK DOS ARQUIVOS'}</span>
 
     <div class="input-shell">
 

@@ -1759,127 +1759,88 @@ function addMovieLanguage(linkId) {
     return;
   }
 
-const languages = [
-  ['BR', 'Português (BR) 5.1'],
-  ['BR', 'Português (BR) 2.0'],
-
-  ['PT', 'Português (PT) 5.1'],
-  ['PT', 'Português (PT) 2.0'],
-
-  ['US', 'Inglês 5.1'],
-  ['US', 'Inglês 2.0'],
-
-  ['ES', 'Espanhol 5.1'],
-  ['ES', 'Espanhol 2.0'],
-
-  ['MX', 'Espanhol (LATAM) 5.1'],
-  ['MX', 'Espanhol (LATAM) 2.0'],
-
-  ['FR', 'Francês 5.1'],
-  ['FR', 'Francês 2.0'],
-
-  ['DE', 'Alemão 5.1'],
-  ['DE', 'Alemão 2.0'],
-
-  ['IT', 'Italiano 5.1'],
-  ['IT', 'Italiano 2.0'],
-
-  ['NL', 'Holandês 5.1'],
-  ['NL', 'Holandês 2.0'],
-
-  ['RU', 'Russo 5.1'],
-  ['RU', 'Russo 2.0'],
-
-  ['PL', 'Polonês 5.1'],
-  ['PL', 'Polonês 2.0'],
-
-  ['UA', 'Ucraniano 5.1'],
-  ['UA', 'Ucraniano 2.0'],
-
-  ['SE', 'Sueco 5.1'],
-  ['SE', 'Sueco 2.0'],
-
-  ['NO', 'Norueguês 5.1'],
-  ['NO', 'Norueguês 2.0'],
-
-  ['DK', 'Dinamarquês 5.1'],
-  ['DK', 'Dinamarquês 2.0'],
-
-  ['FI', 'Finlandês 5.1'],
-  ['FI', 'Finlandês 2.0'],
-
-  ['GR', 'Grego 5.1'],
-  ['GR', 'Grego 2.0'],
-
-  ['TR', 'Turco 5.1'],
-  ['TR', 'Turco 2.0'],
-
-  ['SA', 'Árabe 5.1'],
-  ['SA', 'Árabe 2.0'],
-
-  ['IL', 'Hebraico 5.1'],
-  ['IL', 'Hebraico 2.0'],
-
-  ['IR', 'Persa (Farsi) 5.1'],
-  ['IR', 'Persa (Farsi) 2.0'],
-
-  ['IN', 'Hindi 5.1'],
-  ['IN', 'Hindi 2.0'],
-
-  ['BD', 'Bengali 5.1'],
-  ['BD', 'Bengali 2.0'],
-
-  ['PK', 'Urdu 5.1'],
-  ['PK', 'Urdu 2.0'],
-
-  ['IN', 'Tâmil 5.1'],
-  ['IN', 'Tâmil 2.0'],
-
-  ['IN', 'Telugu 5.1'],
-  ['IN', 'Telugu 2.0'],
-
-  ['CN', 'Chinês (Mandarim) 5.1'],
-  ['CN', 'Chinês (Mandarim) 2.0'],
-
-  ['HK', 'Chinês (Cantonês) 5.1'],
-  ['HK', 'Chinês (Cantonês) 2.0'],
-
-  ['JP', 'Japonês 5.1'],
-  ['JP', 'Japonês 2.0'],
-
-  ['KR', 'Coreano 5.1'],
-  ['KR', 'Coreano 2.0'],
-
-  ['VN', 'Vietnamita 5.1'],
-  ['VN', 'Vietnamita 2.0'],
-
-  ['TH', 'Tailandês 5.1'],
-  ['TH', 'Tailandês 2.0'],
-
-  ['ID', 'Indonésio 5.1'],
-  ['ID', 'Indonésio 2.0'],
-
-  ['MY', 'Malaio 5.1'],
-  ['MY', 'Malaio 2.0'],
-
-  ['PH', 'Filipino (Tagalo) 5.1'],
-  ['PH', 'Filipino (Tagalo) 2.0'],
-
-  ['HU', 'Húngaro 5.1'],
-  ['HU', 'Húngaro 2.0'],
-
-  ['CZ', 'Tcheco 5.1'],
-  ['CZ', 'Tcheco 2.0'],
-
-  ['SK', 'Eslovaco 5.1'],
-  ['SK', 'Eslovaco 2.0'],
-
-  ['RO', 'Romeno 5.1'],
-  ['RO', 'Romeno 2.0'],
-
-  ['BG', 'Búlgaro 5.1'],
-  ['BG', 'Búlgaro 2.0']
-];
+  const languages = [
+    ['BR-51', 'BR', 'Português (BR) 5.1'],
+    ['BR-20', 'BR', 'Português (BR) 2.0'],
+    ['PT-51', 'PT', 'Português (PT) 5.1'],
+    ['PT-20', 'PT', 'Português (PT) 2.0'],
+    ['US-51', 'US', 'Inglês 5.1'],
+    ['US-20', 'US', 'Inglês 2.0'],
+    ['ES-51', 'ES', 'Espanhol 5.1'],
+    ['ES-20', 'ES', 'Espanhol 2.0'],
+    ['MX-51', 'MX', 'Espanhol (LATAM) 5.1'],
+    ['MX-20', 'MX', 'Espanhol (LATAM) 2.0'],
+    ['FR-51', 'FR', 'Francês 5.1'],
+    ['FR-20', 'FR', 'Francês 2.0'],
+    ['DE-51', 'DE', 'Alemão 5.1'],
+    ['DE-20', 'DE', 'Alemão 2.0'],
+    ['IT-51', 'IT', 'Italiano 5.1'],
+    ['IT-20', 'IT', 'Italiano 2.0'],
+    ['NL-51', 'NL', 'Holandês 5.1'],
+    ['NL-20', 'NL', 'Holandês 2.0'],
+    ['RU-51', 'RU', 'Russo 5.1'],
+    ['RU-20', 'RU', 'Russo 2.0'],
+    ['PL-51', 'PL', 'Polonês 5.1'],
+    ['PL-20', 'PL', 'Polonês 2.0'],
+    ['UA-51', 'UA', 'Ucraniano 5.1'],
+    ['UA-20', 'UA', 'Ucraniano 2.0'],
+    ['SE-51', 'SE', 'Sueco 5.1'],
+    ['SE-20', 'SE', 'Sueco 2.0'],
+    ['NO-51', 'NO', 'Norueguês 5.1'],
+    ['NO-20', 'NO', 'Norueguês 2.0'],
+    ['DK-51', 'DK', 'Dinamarquês 5.1'],
+    ['DK-20', 'DK', 'Dinamarquês 2.0'],
+    ['FI-51', 'FI', 'Finlandês 5.1'],
+    ['FI-20', 'FI', 'Finlandês 2.0'],
+    ['GR-51', 'GR', 'Grego 5.1'],
+    ['GR-20', 'GR', 'Grego 2.0'],
+    ['TR-51', 'TR', 'Turco 5.1'],
+    ['TR-20', 'TR', 'Turco 2.0'],
+    ['SA-51', 'SA', 'Árabe 5.1'],
+    ['SA-20', 'SA', 'Árabe 2.0'],
+    ['IL-51', 'IL', 'Hebraico 5.1'],
+    ['IL-20', 'IL', 'Hebraico 2.0'],
+    ['IR-51', 'IR', 'Persa (Farsi) 5.1'],
+    ['IR-20', 'IR', 'Persa (Farsi) 2.0'],
+    ['IN-HI-51', 'IN', 'Hindi 5.1'],
+    ['IN-HI-20', 'IN', 'Hindi 2.0'],
+    ['BD-51', 'BD', 'Bengali 5.1'],
+    ['BD-20', 'BD', 'Bengali 2.0'],
+    ['PK-51', 'PK', 'Urdu 5.1'],
+    ['PK-20', 'PK', 'Urdu 2.0'],
+    ['IN-TA-51', 'IN', 'Tâmil 5.1'],
+    ['IN-TA-20', 'IN', 'Tâmil 2.0'],
+    ['IN-TE-51', 'IN', 'Telugu 5.1'],
+    ['IN-TE-20', 'IN', 'Telugu 2.0'],
+    ['CN-51', 'CN', 'Chinês (Mandarim) 5.1'],
+    ['CN-20', 'CN', 'Chinês (Mandarim) 2.0'],
+    ['HK-51', 'HK', 'Chinês (Cantonês) 5.1'],
+    ['HK-20', 'HK', 'Chinês (Cantonês) 2.0'],
+    ['JP-51', 'JP', 'Japonês 5.1'],
+    ['JP-20', 'JP', 'Japonês 2.0'],
+    ['KR-51', 'KR', 'Coreano 5.1'],
+    ['KR-20', 'KR', 'Coreano 2.0'],
+    ['VN-51', 'VN', 'Vietnamita 5.1'],
+    ['VN-20', 'VN', 'Vietnamita 2.0'],
+    ['TH-51', 'TH', 'Tailandês 5.1'],
+    ['TH-20', 'TH', 'Tailandês 2.0'],
+    ['ID-51', 'ID', 'Indonésio 5.1'],
+    ['ID-20', 'ID', 'Indonésio 2.0'],
+    ['MY-51', 'MY', 'Malaio 5.1'],
+    ['MY-20', 'MY', 'Malaio 2.0'],
+    ['PH-51', 'PH', 'Filipino (Tagalo) 5.1'],
+    ['PH-20', 'PH', 'Filipino (Tagalo) 2.0'],
+    ['HU-51', 'HU', 'Húngaro 5.1'],
+    ['HU-20', 'HU', 'Húngaro 2.0'],
+    ['CZ-51', 'CZ', 'Tcheco 5.1'],
+    ['CZ-20', 'CZ', 'Tcheco 2.0'],
+    ['SK-51', 'SK', 'Eslovaco 5.1'],
+    ['SK-20', 'SK', 'Eslovaco 2.0'],
+    ['RO-51', 'RO', 'Romeno 5.1'],
+    ['RO-20', 'RO', 'Romeno 2.0'],
+    ['BG-51', 'BG', 'Búlgaro 5.1'],
+    ['BG-20', 'BG', 'Búlgaro 2.0']
+  ];
 
   const menu = document.createElement('div');
 
@@ -1898,7 +1859,7 @@ const languages = [
     display:flex;
     flex-direction:column;
     gap:3px;
-    min-width:230px;
+    min-width:250px;
     max-height:260px;
     overflow-y:auto;
     box-shadow:0 8px 20px rgba(0,0,0,.35);
@@ -1906,14 +1867,16 @@ const languages = [
 
   languages.forEach(function(language) {
 
-   const countryCode = language[0];
-const name = language[1];
+    const languageId = language[0];
+    const countryCode = language[1];
+    const name = language[2];
 
     const option = document.createElement('div');
 
     option.className = 'movie-language-option';
-
-    option.dataset.language = code;
+    option.dataset.language = languageId;
+    option.dataset.country = countryCode;
+    option.dataset.name = name;
 
     option.style.cssText = `
       background:transparent;
@@ -1929,18 +1892,20 @@ const name = language[1];
     `;
 
     option.innerHTML = `
-     ${getCountryFlag(countryCode)}
-${name}
-      <span style="opacity:.7; font-weight:400;">
-        — ${name}
-      </span>
+      <img
+        src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png"
+        alt=""
+        width="24"
+        height="18"
+        style="width:24px;height:18px;object-fit:cover;border-radius:2px;vertical-align:middle;margin-right:6px;"
+      >
+      <span>${name}</span>
     `;
 
     menu.appendChild(option);
   });
 
   languagesContainer.style.position = 'relative';
-
   languagesContainer.appendChild(menu);
 
   menu.addEventListener('click', function(event) {
@@ -1952,16 +1917,18 @@ ${name}
 
     if (!option) return;
 
-    const code = option.dataset.language;
+    const languageId = option.dataset.language;
+    const countryCode = option.dataset.country;
+    const name = option.dataset.name;
 
-    if (!code) return;
+    if (!languageId || !countryCode || !name) return;
 
     const existingLanguages =
       languagesContainer.querySelectorAll('.movie-language-tag');
 
     for (const element of existingLanguages) {
 
-      if (element.dataset.language === code) {
+      if (element.dataset.language === languageId) {
         return;
       }
 
@@ -1970,8 +1937,7 @@ ${name}
     const languageElement = document.createElement('span');
 
     languageElement.className = 'movie-language-tag';
-
-    languageElement.dataset.language = code;
+    languageElement.dataset.language = languageId;
 
     languageElement.style.cssText = `
       display:inline-flex;
@@ -1986,13 +1952,15 @@ ${name}
     `;
 
     languageElement.innerHTML = `
-      <span>
-        ${getCountryFlag(code.split('-')[1])}
-      </span>
+      <img
+        src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png"
+        alt=""
+        width="24"
+        height="18"
+        style="width:24px;height:18px;object-fit:cover;border-radius:2px;vertical-align:middle;"
+      >
 
-      <span>
-        ${code}
-      </span>
+      <span>${name}</span>
 
       <button
         type="button"
@@ -2012,15 +1980,10 @@ ${name}
       </button>
     `;
 
-    const addButton = languagesContainer.querySelector(
-      ':scope > button'
-    );
+    const addButton = languagesContainer.querySelector(':scope > button');
 
     if (addButton) {
-      languagesContainer.insertBefore(
-        languageElement,
-        addButton
-      );
+      languagesContainer.insertBefore(languageElement, addButton);
     } else {
       languagesContainer.appendChild(languageElement);
     }
@@ -2039,7 +2002,7 @@ ${name}
 
   });
 
-    setTimeout(function() {
+  setTimeout(function() {
 
     function closeMenu(event) {
 
@@ -2064,7 +2027,8 @@ ${name}
   }, 0);
 
 }
-  function updateMovieLanguageFlag(input) {
+
+function updateMovieLanguageFlag(input) {
   const value = input.value.trim().toUpperCase();
 
   input.value = value;

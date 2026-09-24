@@ -1759,23 +1759,127 @@ function addMovieLanguage(linkId) {
     return;
   }
 
-  const languages = [
-    ['PT-BR', 'Português (Brasil)'],
-    ['PT-PT', 'Português (Portugal)'],
-    ['EN-US', 'Inglês (EUA)'],
-    ['EN-GB', 'Inglês (Reino Unido)'],
-    ['ES-ES', 'Espanhol (Espanha)'],
-    ['ES-MX', 'Espanhol (México)'],
-    ['FR-FR', 'Francês'],
-    ['IT-IT', 'Italiano'],
-    ['DE-DE', 'Alemão'],
-    ['JA-JP', 'Japonês'],
-    ['KO-KR', 'Coreano'],
-    ['ZH-CN', 'Chinês'],
-    ['RU-RU', 'Russo'],
-    ['AR-SA', 'Árabe'],
-    ['HI-IN', 'Hindi']
-  ];
+const languages = [
+  ['BR', 'Português (BR) 5.1'],
+  ['BR', 'Português (BR) 2.0'],
+
+  ['PT', 'Português (PT) 5.1'],
+  ['PT', 'Português (PT) 2.0'],
+
+  ['US', 'Inglês 5.1'],
+  ['US', 'Inglês 2.0'],
+
+  ['ES', 'Espanhol 5.1'],
+  ['ES', 'Espanhol 2.0'],
+
+  ['MX', 'Espanhol (LATAM) 5.1'],
+  ['MX', 'Espanhol (LATAM) 2.0'],
+
+  ['FR', 'Francês 5.1'],
+  ['FR', 'Francês 2.0'],
+
+  ['DE', 'Alemão 5.1'],
+  ['DE', 'Alemão 2.0'],
+
+  ['IT', 'Italiano 5.1'],
+  ['IT', 'Italiano 2.0'],
+
+  ['NL', 'Holandês 5.1'],
+  ['NL', 'Holandês 2.0'],
+
+  ['RU', 'Russo 5.1'],
+  ['RU', 'Russo 2.0'],
+
+  ['PL', 'Polonês 5.1'],
+  ['PL', 'Polonês 2.0'],
+
+  ['UA', 'Ucraniano 5.1'],
+  ['UA', 'Ucraniano 2.0'],
+
+  ['SE', 'Sueco 5.1'],
+  ['SE', 'Sueco 2.0'],
+
+  ['NO', 'Norueguês 5.1'],
+  ['NO', 'Norueguês 2.0'],
+
+  ['DK', 'Dinamarquês 5.1'],
+  ['DK', 'Dinamarquês 2.0'],
+
+  ['FI', 'Finlandês 5.1'],
+  ['FI', 'Finlandês 2.0'],
+
+  ['GR', 'Grego 5.1'],
+  ['GR', 'Grego 2.0'],
+
+  ['TR', 'Turco 5.1'],
+  ['TR', 'Turco 2.0'],
+
+  ['SA', 'Árabe 5.1'],
+  ['SA', 'Árabe 2.0'],
+
+  ['IL', 'Hebraico 5.1'],
+  ['IL', 'Hebraico 2.0'],
+
+  ['IR', 'Persa (Farsi) 5.1'],
+  ['IR', 'Persa (Farsi) 2.0'],
+
+  ['IN', 'Hindi 5.1'],
+  ['IN', 'Hindi 2.0'],
+
+  ['BD', 'Bengali 5.1'],
+  ['BD', 'Bengali 2.0'],
+
+  ['PK', 'Urdu 5.1'],
+  ['PK', 'Urdu 2.0'],
+
+  ['IN', 'Tâmil 5.1'],
+  ['IN', 'Tâmil 2.0'],
+
+  ['IN', 'Telugu 5.1'],
+  ['IN', 'Telugu 2.0'],
+
+  ['CN', 'Chinês (Mandarim) 5.1'],
+  ['CN', 'Chinês (Mandarim) 2.0'],
+
+  ['HK', 'Chinês (Cantonês) 5.1'],
+  ['HK', 'Chinês (Cantonês) 2.0'],
+
+  ['JP', 'Japonês 5.1'],
+  ['JP', 'Japonês 2.0'],
+
+  ['KR', 'Coreano 5.1'],
+  ['KR', 'Coreano 2.0'],
+
+  ['VN', 'Vietnamita 5.1'],
+  ['VN', 'Vietnamita 2.0'],
+
+  ['TH', 'Tailandês 5.1'],
+  ['TH', 'Tailandês 2.0'],
+
+  ['ID', 'Indonésio 5.1'],
+  ['ID', 'Indonésio 2.0'],
+
+  ['MY', 'Malaio 5.1'],
+  ['MY', 'Malaio 2.0'],
+
+  ['PH', 'Filipino (Tagalo) 5.1'],
+  ['PH', 'Filipino (Tagalo) 2.0'],
+
+  ['HU', 'Húngaro 5.1'],
+  ['HU', 'Húngaro 2.0'],
+
+  ['CZ', 'Tcheco 5.1'],
+  ['CZ', 'Tcheco 2.0'],
+
+  ['SK', 'Eslovaco 5.1'],
+  ['SK', 'Eslovaco 2.0'],
+
+  ['RO', 'Romeno 5.1'],
+  ['RO', 'Romeno 2.0'],
+
+  ['BG', 'Búlgaro 5.1'],
+  ['BG', 'Búlgaro 2.0']
+];
 
   const menu = document.createElement('div');
 
@@ -1802,8 +1906,8 @@ function addMovieLanguage(linkId) {
 
   languages.forEach(function(language) {
 
-    const code = language[0];
-    const name = language[1];
+   const countryCode = language[0];
+const name = language[1];
 
     const option = document.createElement('div');
 
@@ -1825,8 +1929,8 @@ function addMovieLanguage(linkId) {
     `;
 
     option.innerHTML = `
-      ${getCountryFlag(code.split('-')[1])}
-      ${code}
+     ${getCountryFlag(countryCode)}
+${name}
       <span style="opacity:.7; font-weight:400;">
         — ${name}
       </span>

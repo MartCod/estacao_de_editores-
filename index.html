@@ -901,6 +901,7 @@ const LANGUAGES = [...LANGUAGES_RAW].sort((a, b) => {
 let movies = [];
 let completedMovies = [];
 let activeId = null;
+let productionMovieId = null;
 let activeDept = 'vocal';
 let currentView = 'production';
 let openPickerFor = null;
@@ -1597,20 +1598,20 @@ function deptStatusForMovie(m, deptKey){
 function renderMovieTabs(){
   const tabs = document.getElementById('movieTabs');
 
-  const activeMovie = movies.find(m => m.id === activeId);
-  const queueMovies = movies.filter(m => m.id !== activeId);
+  const productionMovie = movies.find(m => m.id === productionMovieId);
+  const queueMovies = movies.filter(m => m.id !== productionMovieId);
 
   let html = '<div class="production-queue">';
 
-  if(activeMovie){
+  if(productionMovie){
     html += `
-      <div class="current-movie-card" onclick="selectMovie('${activeMovie.id}')">
+      <div class="current-movie-card">
         <div class="current-movie-label">
           🟢 EDITANDO AGORA
         </div>
 
         <div class="current-movie-title">
-          🎬 ${esc(activeMovie.nome) || 'Sem título'}
+          🎬 ${esc(productionMovie.nome) || 'Sem título'}
         </div>
       </div>
     `;
@@ -1630,7 +1631,10 @@ function renderMovieTabs(){
       const status = index === 0 ? 'PRÓXIMO' : 'NA FILA';
 
       html += `
-        <div class="queue-movie-card" onclick="selectMovie('${m.id}')">
+        <div
+          class="queue-movie-card"
+          onclick="selectMovie('${m.id}')"
+        >
           <div class="queue-number">
             ${number}
           </div>
@@ -1655,7 +1659,10 @@ function renderMovieTabs(){
 
   html += `
     <div class="queue-actions">
-      ${canManageWork() ? '<button class="add-movie-btn" onclick="showProduction(); addMovie()">+ Novo Filme</button>' : ''}
+      ${canManageWork()
+        ? '<button class="add-movie-btn" onclick="showProduction(); addMovie()">+ Novo Filme</button>'
+        : ''
+      }
 
       <button class="history-btn ${currentView === 'history' ? 'active' : ''}" onclick="showHistory()">
         Histórico de filmes concluídos
@@ -1751,19 +1758,28 @@ function render(){
     return;
   }
 
-  if(!movies.length){
-    deptWrap.innerHTML = '';
-    content.innerHTML = `
-      <div class="empty">
-        <h2>Nenhum filme cadastrado</h2>
-        <p>Crie o primeiro filme para começar a distribuir o trabalho entre Vocal, Efeitos e Música.</p>
-        ${canManageWork() ? `<button onclick="addMovie()">+ Novo Filme</button>` : ''}
-      </div>`;
-    return;
-  }
+if(!movies.length){
+  productionMovieId = null;
+  deptWrap.innerHTML = '';
+  content.innerHTML = `
+    <div class="empty">
+      <h2>Nenhum filme cadastrado</h2>
+      <p>Crie o primeiro filme para começar a distribuir o trabalho entre Vocal, Efeitos e Música.</p>
+      ${canManageWork() ? `<button onclick="addMovie()">+ Novo Filme</button>` : ''}
+    </div>`;
+  return;
+}
 
-  let m = movies.find(x=>x.id===activeId);
-  if(!m){ m = movies[0]; activeId = m.id; }
+if(!productionMovieId || !movies.some(x => x.id === productionMovieId)){
+  productionMovieId = movies[0].id;
+}
+
+let m = movies.find(x => x.id === activeId);
+
+if(!m){
+  m = movies[0];
+  activeId = m.id;
+}
 
   renderDeptTabs(m);
   applyDeptTheme();

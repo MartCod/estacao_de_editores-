@@ -2153,6 +2153,57 @@ ${isAdmin() ? `
         style="margin-bottom:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"
       >
 
+               ${(Array.isArray(link.languages) ? link.languages : []).map(lang => `
+          <span
+            class="movie-language-tag"
+            data-language="${esc(lang.id || '')}"
+            style="
+              display:inline-flex;
+              align-items:center;
+              gap:4px;
+              background:#374151;
+              color:#ffffff;
+              padding:4px 8px;
+              border-radius:6px;
+              font-size:12px;
+              font-weight:600;
+            "
+          >
+            <img
+              src="https://flagcdn.com/24x18/${String(lang.country || '').toLowerCase()}.png"
+              alt=""
+              width="24"
+              height="18"
+              style="
+                width:24px;
+                height:18px;
+                object-fit:cover;
+                border-radius:2px;
+                vertical-align:middle;
+              "
+            >
+
+            <span>${esc(lang.name || '')}</span>
+
+            <button
+              type="button"
+              class="remove-language-btn"
+              style="
+                background:none;
+                border:none;
+                color:#ffffff;
+                cursor:pointer;
+                font-size:14px;
+                padding:0;
+                line-height:1;
+              "
+              title="Remover idioma"
+            >
+              ×
+            </button>
+          </span>
+        `).join('')}
+
         ${isAdmin() ? `
           <button
             type="button"

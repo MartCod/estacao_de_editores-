@@ -2514,22 +2514,39 @@ menu.addEventListener('click', function(event) {
 
     <span>${name}</span>
 
-    <button
-      type="button"
-      class="remove-language-btn"
-      style="
-        background:none;
-        border:none;
-        color:#ffffff;
-        cursor:pointer;
-        font-size:14px;
-        padding:0;
-        line-height:1;
-      "
-      title="Remover idioma"
-    >
-      ×
-    </button>
+ <button
+  type="button"
+  class="remove-language-btn"
+  onclick="
+    event.preventDefault();
+    event.stopPropagation();
+
+    const movie = movies.find(movie => movie.id === '${m.id}');
+    const savedLink = movie?.movieLinks?.find(l => l.id === '${link.id}');
+
+    if (savedLink && Array.isArray(savedLink.languages)) {
+      savedLink.languages = savedLink.languages.filter(
+        lang => lang.id !== '${lang.id}'
+      );
+
+      saveData();
+    }
+
+    this.closest('.movie-language-tag')?.remove();
+  "
+  style="
+    background:none;
+    border:none;
+    color:#ffffff;
+    cursor:pointer;
+    font-size:14px;
+    padding:0;
+    line-height:1;
+  "
+  title="Remover idioma"
+>
+  ×
+</button>
   `;
 
   const addButton =

@@ -2462,137 +2462,152 @@ function addMovieLanguage(linkId) {
   languagesContainer.style.position = 'relative';
   languagesContainer.appendChild(menu);
 
-  menu.addEventListener('click', function(event) {
+menu.addEventListener('click', function(event) {
 
-    event.preventDefault();
-    event.stopPropagation();
+  event.preventDefault();
+  event.stopPropagation();
 
-    const option = event.target.closest('.movie-language-option');
+  const option = event.target.closest('.movie-language-option');
 
-    if (!option) return;
+  if (!option) return;
 
-    const languageId = option.dataset.language;
-    const countryCode = option.dataset.country;
-    const name = option.dataset.name;
+  const languageId = option.dataset.language;
+  const countryCode = option.dataset.country;
+  const name = option.dataset.name;
 
-    if (!languageId || !countryCode || !name) return;
+  if (!languageId || !countryCode || !name) return;
 
-    const existingLanguages =
-      languagesContainer.querySelectorAll('.movie-language-tag');
+  const existingLanguages =
+    languagesContainer.querySelectorAll('.movie-language-tag');
 
-    for (const element of existingLanguages) {
-
-      if (element.dataset.language === languageId) {
-        return;
-      }
-
+  for (const element of existingLanguages) {
+    if (element.dataset.language === languageId) {
+      return;
     }
-
-    const languageElement = document.createElement('span');
-
-    languageElement.className = 'movie-language-tag';
-    languageElement.dataset.language = languageId;
-
-    languageElement.style.cssText = `
-      display:inline-flex;
-      align-items:center;
-      gap:4px;
-      background:#374151;
-      color:#ffffff;
-      padding:4px 8px;
-      border-radius:6px;
-      font-size:12px;
-      font-weight:600;
-    `;
-
-    languageElement.innerHTML = `
-      <img
-        src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png"
-        alt=""
-        width="24"
-        height="18"
-        style="width:24px;height:18px;object-fit:cover;border-radius:2px;vertical-align:middle;"
-      >
-
-      <span>${name}</span>
-
-      <button
-        type="button"
-        class="remove-language-btn"
-        style="
-          background:none;
-          border:none;
-          color:#ffffff;
-          cursor:pointer;
-          font-size:14px;
-          padding:0;
-          line-height:1;
-        "
-        title="Remover idioma"
-      >
-        ×
-      </button>
-    `;
-
-    const addButton = languagesContainer.querySelector(':scope > button');
-
-    if (addButton) {
-      languagesContainer.insertBefore(languageElement, addButton);
-    } else {
-      languagesContainer.appendChild(languageElement);
-    }
-  const movie = movies.find(m =>
-  Array.isArray(m.movieLinks) &&
-  m.movieLinks.some(link => link.id === linkId)
-);
-
-const savedLink = movie?.movieLinks?.find(link => link.id === linkId);
-
-if (savedLink) {
-  savedLink.languages = Array.isArray(savedLink.languages)
-    ? savedLink.languages
-    : [];
-
-  if (!savedLink.languages.some(lang => lang.id === languageId)) {
-    savedLink.languages.push({
-      id: languageId,
-      country: countryCode,
-      name: name
-    });
   }
 
-  console.log('IDIOMA SALVO NO LINK:', savedLink);
+  const languageElement = document.createElement('span');
 
-  saveData();
-}
+  languageElement.className = 'movie-language-tag';
+  languageElement.dataset.language = languageId;
 
+  languageElement.style.cssText = `
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    background:#374151;
+    color:#ffffff;
+    padding:4px 8px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:600;
+  `;
 
-    const removeButton =
-      languageElement.querySelector('.remove-language-btn');
+  languageElement.innerHTML = `
+    <img
+      src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png"
+      alt=""
+      width="24"
+      height="18"
+      style="width:24px;height:18px;object-fit:cover;border-radius:2px;vertical-align:middle;"
+    >
 
-  removeButton.addEventListener('click', function(removeEvent) {
+    <span>${name}</span>
 
-  removeEvent.preventDefault();
-  removeEvent.stopPropagation();
+    <button
+      type="button"
+      class="remove-language-btn"
+      style="
+        background:none;
+        border:none;
+        color:#ffffff;
+        cursor:pointer;
+        font-size:14px;
+        padding:0;
+        line-height:1;
+      "
+      title="Remover idioma"
+    >
+      ×
+    </button>
+  `;
+
+  const addButton =
+    languagesContainer.querySelector(':scope > button');
+
+  if (addButton) {
+    languagesContainer.insertBefore(languageElement, addButton);
+  } else {
+    languagesContainer.appendChild(languageElement);
+  }
 
   const movie = movies.find(m =>
     Array.isArray(m.movieLinks) &&
     m.movieLinks.some(link => link.id === linkId)
   );
 
-  const savedLink = movie?.movieLinks?.find(link => link.id === linkId);
+  const savedLink =
+    movie?.movieLinks?.find(link => link.id === linkId);
 
-  if (savedLink && Array.isArray(savedLink.languages)) {
-    savedLink.languages = savedLink.languages.filter(
-      lang => lang.id !== languageId
+  if (savedLink) {
+
+    savedLink.languages =
+      Array.isArray(savedLink.languages)
+        ? savedLink.languages
+        : [];
+
+    if (!savedLink.languages.some(lang => lang.id === languageId)) {
+
+      savedLink.languages.push({
+        id: languageId,
+        country: countryCode,
+        name: name
+      });
+
+    }
+
+    console.log(
+      'IDIOMA SALVO NO LINK:',
+      savedLink
     );
 
     saveData();
   }
 
-  languageElement.remove();
+  const removeButton =
+    languageElement.querySelector('.remove-language-btn');
 
-});
+  removeButton.addEventListener(
+    'click',
+    function(removeEvent) {
+
+      removeEvent.preventDefault();
+      removeEvent.stopPropagation();
+
+      const movie = movies.find(m =>
+        Array.isArray(m.movieLinks) &&
+        m.movieLinks.some(link => link.id === linkId)
+      );
+
+      const savedLink =
+        movie?.movieLinks?.find(link => link.id === linkId);
+
+      if (
+        savedLink &&
+        Array.isArray(savedLink.languages)
+      ) {
+
+        savedLink.languages =
+          savedLink.languages.filter(
+            lang => lang.id !== languageId
+          );
+
+        saveData();
+      }
+
+      languageElement.remove();
+    }
+  );
 
   setTimeout(function() {
 
@@ -2608,7 +2623,6 @@ if (savedLink) {
         );
 
       }
-
     }
 
     document.addEventListener(
@@ -2618,8 +2632,7 @@ if (savedLink) {
 
   }, 0);
 
-}
-
+});
 function updateMovieLanguageFlag(input) {
   const value = input.value.trim().toUpperCase();
 

@@ -1283,7 +1283,14 @@ async function loadCloudData(){
     activeId = payload.activeMovieId || (movies[0] && movies[0].id) || null;
     productionMovieId = payload.productionMovieId || null;
     activeDept = payload.activeDept || 'vocal';
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, completedMovies, activeMovieId: activeId })); }catch(e){}
+   try{
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    movies,
+    completedMovies,
+    activeMovieId: activeId,
+    productionMovieId
+  }));
+}catch(e){}
     return true;
   }
   return false;

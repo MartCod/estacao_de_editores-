@@ -1229,7 +1229,12 @@ function loadData(){
 
 function saveData(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, completedMovies, activeMovieId: activeId }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+  movies,
+  completedMovies,
+  activeMovieId: activeId,
+  productionMovieId
+}));
     storageOk = true;
   }catch(e){
     console.error('Falha ao salvar localmente', e);
@@ -1247,7 +1252,13 @@ function scheduleCloudSave(){
 async function saveCloudData(){
   if(!cloudEnabled || !supabaseClient || !currentUser) return;
   try{
-    const payload = { movies, completedMovies, activeMovieId: activeId, activeDept };
+   const payload = {
+  movies,
+  completedMovies,
+  activeMovieId: activeId,
+  productionMovieId,
+  activeDept
+};
     const { error } = await supabaseClient.from(CLOUD_TABLE).upsert({
       id: CLOUD_ROW_ID,
       payload,
@@ -1270,6 +1281,7 @@ async function loadCloudData(){
     completedMovies = Array.isArray(payload.completedMovies) ? payload.completedMovies : [];
     movies.forEach(ensureMovieShape);
     activeId = payload.activeMovieId || (movies[0] && movies[0].id) || null;
+    productionMovieId = payload.productionMovieId || null;
     activeDept = payload.activeDept || 'vocal';
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ movies, completedMovies, activeMovieId: activeId })); }catch(e){}
     return true;

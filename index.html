@@ -2455,12 +2455,34 @@ function selectMovieLinkType(movieId, type) {
 }
 function addMovieLink(movieId, type) {
   if (!isAdmin()) return;
-  const container = document.getElementById(`movieLinks-${movieId}`);
 
+  const m = movies.find(m => m.id === movieId);
+  if (!m) return;
+
+  const container = document.getElementById(`movieLinks-${movieId}`);
   if (!container) return;
+
+  // Garante que filmes antigos também tenham movieLinks
+  if (!Array.isArray(m.movieLinks)) {
+    m.movieLinks = [];
+  }
 
   const linkId = `movie-link-${movieId}-${Date.now()}`;
 
+  // Cria o novo link dentro dos dados do filme
+  const newLink = {
+    id: linkId,
+    url: '',
+    idiomas: [],
+    type: type || 'LINK DOS ARQUIVOS'
+  };
+
+  m.movieLinks.push(newLink);
+
+  // Salva imediatamente
+  saveData();
+
+  // Cria o campo visual
   const linkRow = document.createElement('div');
   linkRow.className = 'path-audio-field';
   linkRow.id = linkId;
@@ -2472,34 +2494,45 @@ function addMovieLink(movieId, type) {
       style="margin-bottom:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"
     >
 
-     ${isAdmin() ? `
-  <button
-    type="button"
-    onclick="addMovieLanguage('${linkId}')"
-    style="
-      background:#374151;
-      color:#ffffff;
-      border:none;
-      padding:4px 8px;
-      border-radius:6px;
-      font-size:12px;
-      font-weight:600;
-      cursor:pointer;
-    "
-  >
-    ＋ Idioma
-  </button>
-` : ''}
+      ${isAdmin() ? `
+        <button
+          type="button"
+          onclick="addMovieLanguage('${linkId}')"
+          style="
+            background:#374151;
+            color:#ffffff;
+            border:none;
+            padding:4px 8px;
+            border-radius:6px;
+            font-size:12px;
+            font-weight:600;
+            cursor:pointer;
+          "
+        >
+          ＋ Idioma
+        </button>
+      ` : ''}
 
     </div>
 
-    <span class="audio-path-label">${type || 'LINK DOS ARQUIVOS'}</span>
+    <span class="audio-path-label">
+      ${type || 'LINK DOS ARQUIVOS'}
+    </span>
 
     <div class="input-shell">
 
       <input
         type="text"
         placeholder="Caminho ou link do filme"
+        value=""
+        oninput="
+          const movie = movies.find(m => m.id === '${movieId}');
+          const link = movie?.movieLinks?.find(l => l.id === '${linkId}');
+          if (link) {
+            link.url = this.value;
+            saveData();
+          }
+        "
       >
 
       <button
@@ -2512,7 +2545,14 @@ function addMovieLink(movieId, type) {
 
       <button
         type="button"
-        onclick="document.getElementById('${linkId}').remove()"
+        onclick="
+          const movie = movies.find(m => m.id === '${movieId}');
+          if (movie && Array.isArray(movie.movieLinks)) {
+            movie.movieLinks = movie.movieLinks.filter(l => l.id !== '${linkId}');
+            saveData();
+          }
+          document.getElementById('${linkId}')?.remove();
+        "
         style="
           background:#dc2626;
           color:#ffffff;

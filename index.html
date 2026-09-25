@@ -1980,10 +1980,31 @@ function pathRowHtml(m){
 
             <div class="input-shell">
 
-              <input
-                type="text"
-                placeholder="Caminho ou link do filme"
-              >
+            <input
+  type="text"
+  placeholder="Caminho ou link do filme"
+  value="${esc(m.movieLinks?.[0]?.url || '')}"
+  oninput="
+    const movie = movies.find(movie => movie.id === '${m.id}');
+    if (!movie) return;
+
+    if (!Array.isArray(movie.movieLinks)) {
+      movie.movieLinks = [];
+    }
+
+    if (!movie.movieLinks[0]) {
+      movie.movieLinks[0] = {
+        id: 'movie-link-${m.id}-primary',
+        url: '',
+        idiomas: [],
+        type: 'LINK DOS ARQUIVOS'
+      };
+    }
+
+    movie.movieLinks[0].url = this.value;
+    saveData();
+  "
+>
 
               <button
                 class="copy-btn"

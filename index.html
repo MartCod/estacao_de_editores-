@@ -2462,14 +2462,20 @@ function addMovieLanguage(linkId) {
   languagesContainer.style.position = 'relative';
   languagesContainer.appendChild(menu);
 
-menu.addEventListener('click', function(event) {
+menu.addEventListener(
+  'click',
+  function(event) {
+    event.preventDefault();
+    event.stopPropagation();
 
-  event.preventDefault();
-  event.stopPropagation();
+    const option = event.target.closest('.movie-language-option');
 
-  const option = event.target.closest('.movie-language-option');
+    if (!option) {
+      console.log('NÃO ENCONTROU A OPÇÃO DE IDIOMA');
+      return;
+    }
 
-  if (!option) return;
+    console.log('IDIOMA CLICADO:', option.dataset.language);
 
   const languageId = option.dataset.language;
   const countryCode = option.dataset.country;

@@ -2490,28 +2490,30 @@ function addMovieLanguage(linkId) {
     } else {
       languagesContainer.appendChild(languageElement);
     }
-    const movie = movies.find(m =>
-      Array.isArray(m.movieLinks) &&
-      m.movieLinks.some(link => link.id === linkId)
-    );
+  const movie = movies.find(m =>
+  Array.isArray(m.movieLinks) &&
+  m.movieLinks.some(link => link.id === linkId)
+);
 
-    const savedLink = movie?.movieLinks?.find(link => link.id === linkId);
+const savedLink = movie?.movieLinks?.find(link => link.id === linkId);
 
-    if (savedLink) {
-      if (!Array.isArray(savedLink.languages)) {
-        savedLink.languages = [];
-      }
+if (savedLink) {
+  savedLink.languages = Array.isArray(savedLink.languages)
+    ? savedLink.languages
+    : [];
 
-      if (!savedLink.languages.some(lang => lang.id === languageId)) {
-        savedLink.languages.push({
-          id: languageId,
-          country: countryCode,
-          name: name
-        });
-      }
+  if (!savedLink.languages.some(lang => lang.id === languageId)) {
+    savedLink.languages.push({
+      id: languageId,
+      country: countryCode,
+      name: name
+    });
+  }
 
-      saveData();
-    }
+  console.log('IDIOMA SALVO NO LINK:', savedLink);
+
+  saveData();
+}
 
 
     const removeButton =

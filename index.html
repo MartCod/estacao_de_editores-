@@ -2520,26 +2520,9 @@ menu.addEventListener(
 
     <span>${name}</span>
 
- <button
+<button
   type="button"
   class="remove-language-btn"
-  onclick="
-    event.preventDefault();
-    event.stopPropagation();
-
-    const movie = movies.find(movie => movie.id === '${m.id}');
-    const savedLink = movie?.movieLinks?.find(l => l.id === '${link.id}');
-
-    if (savedLink && Array.isArray(savedLink.languages)) {
-      savedLink.languages = savedLink.languages.filter(
-        lang => lang.id !== '${lang.id}'
-      );
-
-      saveData();
-    }
-
-    this.closest('.movie-language-tag')?.remove();
-  "
   style="
     background:none;
     border:none;

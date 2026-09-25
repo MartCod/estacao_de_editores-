@@ -2679,7 +2679,11 @@ function addMovieLink(movieId, type) {
   linkRow.className = 'path-audio-field';
   linkRow.id = linkId;
 
-  linkRow.innerHTML = `
+ linkRow.innerHTML = `
+    <span class="audio-path-label">
+      ${type || 'LINK DOS ARQUIVOS'}
+    </span>
+
     <!-- IDIOMAS DESTE LINK -->
     <div
       class="movie-link-languages"

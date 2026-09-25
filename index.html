@@ -2122,6 +2122,98 @@ ${isAdmin() ? `
   id="movieLinks-${m.id}"
   class="movie-links-list"
 >
+  ${(Array.isArray(m.movieLinks) ? m.movieLinks.slice(1) : []).map(link => `
+    <div
+      class="path-audio-field"
+      id="${link.id}"
+    >
+
+      <!-- IDIOMAS DESTE LINK -->
+      <div
+        class="movie-link-languages"
+        style="margin-bottom:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"
+      >
+
+        ${isAdmin() ? `
+          <button
+            type="button"
+            onclick="addMovieLanguage('${link.id}')"
+            style="
+              background:#374151;
+              color:#ffffff;
+              border:none;
+              padding:4px 8px;
+              border-radius:6px;
+              font-size:12px;
+              font-weight:600;
+              cursor:pointer;
+            "
+          >
+            ＋ Idioma
+          </button>
+        ` : ''}
+
+      </div>
+
+      <span class="audio-path-label">
+        ${esc(link.type || 'LINK DOS ARQUIVOS')}
+      </span>
+
+      <div class="input-shell">
+
+        <input
+          type="text"
+          placeholder="Caminho ou link do filme"
+          value="${esc(link.url || '')}"
+          oninput="
+            const movie = movies.find(movie => movie.id === '${m.id}');
+            const savedLink = movie?.movieLinks?.find(l => l.id === '${link.id}');
+            if (savedLink) {
+              savedLink.url = this.value;
+              saveData();
+            }
+          "
+        >
+
+        <button
+          class="copy-btn"
+          type="button"
+          onclick="navigator.clipboard.writeText(this.previousElementSibling.value)"
+        >
+          Copiar
+        </button>
+
+        <button
+          type="button"
+          onclick="
+            const movie = movies.find(movie => movie.id === '${m.id}');
+            if (movie && Array.isArray(movie.movieLinks)) {
+              movie.movieLinks = movie.movieLinks.filter(l => l.id !== '${link.id}');
+              saveData();
+            }
+            document.getElementById('${link.id}')?.remove();
+          "
+          style="
+            background:#dc2626;
+            color:#ffffff;
+            border:none;
+            width:32px;
+            height:32px;
+            border-radius:6px;
+            cursor:pointer;
+            font-size:18px;
+            font-weight:bold;
+            line-height:1;
+          "
+          title="Excluir link"
+        >
+          ×
+        </button>
+
+      </div>
+
+    </div>
+  `).join('')}
 </div>
  `;
 }

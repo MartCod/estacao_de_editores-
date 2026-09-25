@@ -2570,16 +2570,29 @@ if (savedLink) {
     const removeButton =
       languageElement.querySelector('.remove-language-btn');
 
-    removeButton.addEventListener('click', function(removeEvent) {
+  removeButton.addEventListener('click', function(removeEvent) {
 
-      removeEvent.preventDefault();
-      removeEvent.stopPropagation();
+  removeEvent.preventDefault();
+  removeEvent.stopPropagation();
 
-      languageElement.remove();
+  const movie = movies.find(m =>
+    Array.isArray(m.movieLinks) &&
+    m.movieLinks.some(link => link.id === linkId)
+  );
 
-    });
+  const savedLink = movie?.movieLinks?.find(link => link.id === linkId);
 
-  });
+  if (savedLink && Array.isArray(savedLink.languages)) {
+    savedLink.languages = savedLink.languages.filter(
+      lang => lang.id !== languageId
+    );
+
+    saveData();
+  }
+
+  languageElement.remove();
+
+});
 
   setTimeout(function() {
 

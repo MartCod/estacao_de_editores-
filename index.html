@@ -1650,7 +1650,10 @@ function renderMovieTabs(){
 
   if(productionMovie){
     html += `
-      <div class="current-movie-card">
+     <div
+  class="current-movie-card"
+  onclick="selectMovie('${productionMovie.id}')"
+>
         <div class="current-movie-label">
           🟢 EDITANDO AGORA
         </div>

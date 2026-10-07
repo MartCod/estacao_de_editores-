@@ -859,6 +859,8 @@ const CLOUD_ROW_ID = 1;
 let supabaseClient = null;
 let currentUser = null;
 let cloudSaveTimer = null;
+let cloudSaveInProgress = false;
+let cloudSavePending = false;
 let cloudEnabled = false;
 let currentAccess = { role:'editor', editorName:'' };
 let stationUsers = [];
@@ -1247,8 +1249,34 @@ function saveData(){
 
 function scheduleCloudSave(){
   if(!cloudEnabled || !supabaseClient || !currentUser) return;
+
   clearTimeout(cloudSaveTimer);
-  cloudSaveTimer = setTimeout(saveCloudData, 350);
+
+  cloudSaveTimer = setTimeout(async () => {
+    cloudSaveTimer = null;
+
+    // Se já existe uma gravação acontecendo,
+    // marca que outra gravação será necessária depois.
+    if(cloudSaveInProgress){
+      cloudSavePending = true;
+      return;
+    }
+
+    cloudSaveInProgress = true;
+
+    try{
+      await saveCloudData();
+    }finally{
+      cloudSaveInProgress = false;
+
+      // Se houve alguma alteração enquanto a gravação
+      // estava acontecendo, salva novamente depois.
+      if(cloudSavePending){
+        cloudSavePending = false;
+        scheduleCloudSave();
+      }
+    }
+  }, 350);
 }
 
 async function saveCloudData(){

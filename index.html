@@ -854,7 +854,7 @@
         <div class="slate-icon">🎥</div>
         <div class="titles">
           <h1>Estação de Editores</h1>
-          <p>Vocal · Efeitos · Música — 7 editores por equipe · funciona 100% offline</p>
+          <p>Vocal · Efeitos · Música — 7 editores por equipe · sincronizado em tempo real</p>
         </div><div class="io-actions">
   <span class="user-session" id="userSession"></span>
 
@@ -890,20 +890,11 @@
 <script>
 const SUPABASE_URL = 'https://crcoamhzqwbbkhytiokm.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_JWUy3AJulp9FKqSpwUkt3A_Eqs1_NrV';
-const DEFAULT_EDITORS = 7;
-const STORAGE_KEY = 'estacao_editores_v3';
-const OLD_STORAGE_KEY_V2 = 'estacao_editores_v2';
-const OLD_STORAGE_KEY_V1 = 'painel_edicao_audio_v1';
 const THEME_KEY = 'estacao_editores_theme';
-const CLOUD_TABLE = 'editor_panel_shared_data';
-const CLOUD_ROW_ID = 1;
+const UI_KEY = 'estacao_editores_ui_v2';
+const TEXT_SAVE_DELAY = 600; // ms de espera após a última tecla antes de salvar
 let supabaseClient = null;
 let currentUser = null;
-let cloudSaveTimer = null;
-let cloudSaveInProgress = false;
-let cloudSavePending = false;
-let cloudDataVersion = 0;
-let cloudSavedVersion = 0;
 let cloudEnabled = false;
 let currentAccess = { role:'editor', editorName:'' };
 let stationUsers = [];
@@ -940,9 +931,9 @@ const LANGUAGES_RAW = [
   'Filipino (Tagalo) 2.0','Húngaro 5.1','Húngaro 2.0',
   'Tcheco 5.1','Tcheco 2.0','Eslovaco 5.1',
   'Eslovaco 2.0','Romeno 5.1','Romeno 2.0',
- 'Búlgaro 5.1','Búlgaro 2.0',
-'Catalão 5.1','Catalão 2.0',
-'Islandês 5.1','Islandês 2.0'
+  'Búlgaro 5.1','Búlgaro 2.0',
+  'Catalão 5.1','Catalão 2.0',
+  'Islandês 5.1','Islandês 2.0'
 ];
 // Ordenado alfabeticamente pelo nome do idioma (mantendo 5.1 antes de 2.0 para o mesmo idioma)
 const LANGUAGES = [...LANGUAGES_RAW].sort((a, b) => {
@@ -955,18 +946,84 @@ const LANGUAGES = [...LANGUAGES_RAW].sort((a, b) => {
   return orderA - orderB;
 });
 
+// Idiomas que podem ser marcados em cada link de arquivos: [id, país (bandeira), nome]
+const LINK_LANGUAGES = [
+  ['BR-51', 'BR', 'Português (BR) 5.1'], ['BR-20', 'BR', 'Português (BR) 2.0'],
+  ['PT-51', 'PT', 'Português (PT) 5.1'], ['PT-20', 'PT', 'Português (PT) 2.0'],
+  ['US-51', 'US', 'Inglês 5.1'], ['US-20', 'US', 'Inglês 2.0'],
+  ['ES-51', 'ES', 'Espanhol 5.1'], ['ES-20', 'ES', 'Espanhol 2.0'],
+  ['MX-51', 'MX', 'Espanhol (LATAM) 5.1'], ['MX-20', 'MX', 'Espanhol (LATAM) 2.0'],
+  ['FR-51', 'FR', 'Francês 5.1'], ['FR-20', 'FR', 'Francês 2.0'],
+  ['DE-51', 'DE', 'Alemão 5.1'], ['DE-20', 'DE', 'Alemão 2.0'],
+  ['IT-51', 'IT', 'Italiano 5.1'], ['IT-20', 'IT', 'Italiano 2.0'],
+  ['NL-51', 'NL', 'Holandês 5.1'], ['NL-20', 'NL', 'Holandês 2.0'],
+  ['RU-51', 'RU', 'Russo 5.1'], ['RU-20', 'RU', 'Russo 2.0'],
+  ['PL-51', 'PL', 'Polonês 5.1'], ['PL-20', 'PL', 'Polonês 2.0'],
+  ['UA-51', 'UA', 'Ucraniano 5.1'], ['UA-20', 'UA', 'Ucraniano 2.0'],
+  ['SE-51', 'SE', 'Sueco 5.1'], ['SE-20', 'SE', 'Sueco 2.0'],
+  ['NO-51', 'NO', 'Norueguês 5.1'], ['NO-20', 'NO', 'Norueguês 2.0'],
+  ['DK-51', 'DK', 'Dinamarquês 5.1'], ['DK-20', 'DK', 'Dinamarquês 2.0'],
+  ['FI-51', 'FI', 'Finlandês 5.1'], ['FI-20', 'FI', 'Finlandês 2.0'],
+  ['GR-51', 'GR', 'Grego 5.1'], ['GR-20', 'GR', 'Grego 2.0'],
+  ['TR-51', 'TR', 'Turco 5.1'], ['TR-20', 'TR', 'Turco 2.0'],
+  ['SA-51', 'SA', 'Árabe 5.1'], ['SA-20', 'SA', 'Árabe 2.0'],
+  ['IL-51', 'IL', 'Hebraico 5.1'], ['IL-20', 'IL', 'Hebraico 2.0'],
+  ['IR-51', 'IR', 'Persa (Farsi) 5.1'], ['IR-20', 'IR', 'Persa (Farsi) 2.0'],
+  ['IN-HI-51', 'IN', 'Hindi 5.1'], ['IN-HI-20', 'IN', 'Hindi 2.0'],
+  ['BD-51', 'BD', 'Bengali 5.1'], ['BD-20', 'BD', 'Bengali 2.0'],
+  ['PK-51', 'PK', 'Urdu 5.1'], ['PK-20', 'PK', 'Urdu 2.0'],
+  ['IN-TA-51', 'IN', 'Tâmil 5.1'], ['IN-TA-20', 'IN', 'Tâmil 2.0'],
+  ['IN-TE-51', 'IN', 'Telugu 5.1'], ['IN-TE-20', 'IN', 'Telugu 2.0'],
+  ['CN-51', 'CN', 'Chinês (Mandarim) 5.1'], ['CN-20', 'CN', 'Chinês (Mandarim) 2.0'],
+  ['HK-51', 'HK', 'Chinês (Cantonês) 5.1'], ['HK-20', 'HK', 'Chinês (Cantonês) 2.0'],
+  ['JP-51', 'JP', 'Japonês 5.1'], ['JP-20', 'JP', 'Japonês 2.0'],
+  ['KR-51', 'KR', 'Coreano 5.1'], ['KR-20', 'KR', 'Coreano 2.0'],
+  ['VN-51', 'VN', 'Vietnamita 5.1'], ['VN-20', 'VN', 'Vietnamita 2.0'],
+  ['TH-51', 'TH', 'Tailandês 5.1'], ['TH-20', 'TH', 'Tailandês 2.0'],
+  ['ID-51', 'ID', 'Indonésio 5.1'], ['ID-20', 'ID', 'Indonésio 2.0'],
+  ['MY-51', 'MY', 'Malaio 5.1'], ['MY-20', 'MY', 'Malaio 2.0'],
+  ['PH-51', 'PH', 'Filipino (Tagalo) 5.1'], ['PH-20', 'PH', 'Filipino (Tagalo) 2.0'],
+  ['HU-51', 'HU', 'Húngaro 5.1'], ['HU-20', 'HU', 'Húngaro 2.0'],
+  ['CZ-51', 'CZ', 'Tcheco 5.1'], ['CZ-20', 'CZ', 'Tcheco 2.0'],
+  ['SK-51', 'SK', 'Eslovaco 5.1'], ['SK-20', 'SK', 'Eslovaco 2.0'],
+  ['RO-51', 'RO', 'Romeno 5.1'], ['RO-20', 'RO', 'Romeno 2.0'],
+  ['BG-51', 'BG', 'Búlgaro 5.1'], ['BG-20', 'BG', 'Búlgaro 2.0'],
+  ['CA-51', 'ES', 'Catalão 5.1'], ['CA-20', 'ES', 'Catalão 2.0'],
+  ['IS-51', 'IS', 'Islandês 5.1'], ['IS-20', 'IS', 'Islandês 2.0'],
+];
+const MOVIE_LINK_TYPES = ['Filmes 5.1', 'Filmes 2.0', 'Filmes_entrada', '6_channels', 'Filmes 7.1', 'Mono', 'Stereo'];
+
 /* ==========================================================================
-   MODELO DE DADOS (v3)
+   MODELO DE DADOS (2.0)
    ----------------------------------------------------------------------
-   O FILME é a entidade principal (lista única, não mais uma lista por
-   departamento). Cada filme carrega suas 3 etapas em `depts`:
+   Os dados ficam no Supabase em tabelas separadas (uma linha por filme,
+   link, editor e idioma — ver supabase/migrations). Cada alteração grava
+   SÓ a linha e o campo alterados, e o servidor confere a permissão de quem
+   está alterando. Mudanças feitas por outras pessoas chegam pelo Realtime.
+
+   `store` guarda as linhas como vieram do banco. A partir dele é montada a
+   estrutura usada pela tela (igual à da versão 1):
      movie.depts.vocal.editors[]   -> cada editor tem idiomas[] (por idioma)
      movie.depts.efeitos.editors[] -> cada editor tem 1 tarefa (sem idioma)
      movie.depts.musica.editors[]  -> cada editor tem 1 tarefa (sem idioma)
-   O progresso de cada etapa fica sempre calculado a partir dos dados do
-   próprio filme, e o progresso GERAL do filme é a média cumulativa das
-   3 etapas — por isso ele nunca "zera" ao trocar de aba.
+   O progresso GERAL do filme é a média cumulativa das 3 etapas.
+
+   Filme/aba abertos (activeId/activeDept) são preferência de cada pessoa
+   e ficam só no navegador dela.
    ========================================================================== */
+
+const TABLES = {
+  movies:    'station_movies',
+  links:     'station_movie_links',
+  editors:   'station_editors',
+  rows:      'station_vocal_rows',
+  completed: 'station_completed_movies',
+  settings:  'station_settings'
+};
+// Colunas que podem ser nulas no banco (todas as outras são NOT NULL).
+const NULLABLE_COLUMNS = new Set(['user_id', 'updated_by', 'production_movie_id', 'concluido_por']);
+const store = {};
+Object.keys(TABLES).forEach(kind => { store[kind] = new Map(); });
 
 let movies = [];
 let completedMovies = [];
@@ -976,7 +1033,6 @@ let activeDept = 'vocal';
 let currentView = 'production';
 let openPickerFor = null;
 let pickerSearch = '';
-let storageOk = true;
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
@@ -988,7 +1044,6 @@ function canManageLanguages(){ return isAdmin() || isChief(); }
 function canCompleteMovie(){ return isAdmin() || isChief(); }
 function canImport(){ return isAdmin(); }
 function canExport(){ return isAdmin() || isChief(); }
-function normalizeName(value){ return (value || '').trim().toLocaleLowerCase('pt-BR'); }
 function ownsEditor(editor){
   return currentAccess.role === 'editor'
     && editor
@@ -997,6 +1052,8 @@ function ownsEditor(editor){
     && editor.user_id === currentUser.id;
 }
 
+// Espelha as regras do servidor (gatilho station_guard_task_update) só para
+// decidir o que mostrar como editável. Quem decide de verdade é o servidor.
 function canEditTask(editor, field){
   // Administrador pode alterar tudo
   if(isAdmin()) return true;
@@ -1025,7 +1082,7 @@ async function loadAccess(user){
   if(error){ console.error('Falha ao carregar perfil de acesso', error); return; }
   if(data) currentAccess = { role:data.role || 'editor', editorName:data.editor_name || '' };
 }
-  async function loadStationUsers(){
+async function loadStationUsers(){
   stationUsers = [];
 
   if(!cloudEnabled || !supabaseClient) return;
@@ -1033,7 +1090,7 @@ async function loadAccess(user){
   const { data, error } = await supabaseClient
     .from('station_user_access')
     .select('user_id, role, editor_name')
-   .in('role', ['editor', 'chief'])
+    .in('role', ['editor', 'chief'])
     .order('editor_name', { ascending:true });
 
   if(error){
@@ -1042,51 +1099,6 @@ async function loadAccess(user){
   }
 
   stationUsers = data || [];
-}
- function assignEditorUser(movieId, editorId, userId){
-  if(!canManageWork()) return;
-
-  const m = movies.find(movie => movie.id === movieId);
-  if(!m) return;
-
-  const editor = m.depts.vocal.editors.find(item => item.id === editorId);
-  if(!editor) return;
-
-  const user = stationUsers.find(item => item.user_id === userId);
-  if(!user) return;
-
-  editor.user_id = user.user_id;
-  editor.nome = user.editor_name || '';
-
-  saveData();
-  render();
-} 
-  function migrateEditorUserIds(){
-  if(!stationUsers.length) return;
-
-  let changed = false;
-
-  movies.forEach(movie => {
-    Object.values(movie.depts || {}).forEach(dept => {
-      (dept.editors || []).forEach(editor => {
-
-        if(editor.user_id) return;
-
-        const user = stationUsers.find(
-          u => normalizeName(u.editor_name) === normalizeName(editor.nome)
-        );
-
-        if(user){
-          editor.user_id = user.user_id;
-          changed = true;
-        }
-      });
-    });
-  });
-
-  if(changed){
-    saveData();
-  }
 }
 function applyAccessUi(){
   const importBtn = document.getElementById('importBtn');
@@ -1097,36 +1109,397 @@ function applyAccessUi(){
   if(newUserBtn) newUserBtn.style.display = isAdmin() ? 'inline-block' : 'none';
 }
 
-function blankLangRow(idioma){
-  return { id: uid(), idioma: idioma, inicio:'', entrega:'', urgencia:'media', status:'pendente', revisor:'', statusRevisao:'pendente' };
+/* ---------- MONTAGEM DA ESTRUTURA DA TELA A PARTIR DAS LINHAS DO BANCO ---------- */
+
+function byPosition(a, b){
+  return ((a.position || 0) - (b.position || 0)) || String(a.id).localeCompare(String(b.id));
 }
-function blankVocalEditor(n){
-  return { id: uid(), nome: 'Editor ' + n, idiomas: [] };
+
+function rebuildState(){
+  const movieById = new Map();
+  movies = [...store.movies.values()].sort(byPosition).map(r => {
+    const m = {
+      id: r.id,
+      nome: r.nome || '',
+      poster: r.poster || '',
+      drive: r.drive || '',
+      movieLinks: [],
+      depts: { vocal:{ editors:[] }, efeitos:{ editors:[] }, musica:{ editors:[] } }
+    };
+    movieById.set(m.id, m);
+    return m;
+  });
+
+  [...store.links.values()].sort(byPosition).forEach(r => {
+    const m = movieById.get(r.movie_id);
+    if(m) m.movieLinks.push({
+      id: r.id,
+      type: r.type || 'LINK DOS ARQUIVOS',
+      url: r.url || '',
+      languages: Array.isArray(r.languages) ? r.languages : []
+    });
+  });
+
+  const editorById = new Map();
+  [...store.editors.values()].sort(byPosition).forEach(r => {
+    const m = movieById.get(r.movie_id);
+    if(!m || !m.depts[r.dept]) return;
+    const e = r.dept === 'vocal'
+      ? { id:r.id, nome:r.nome || '', user_id:r.user_id || null, idiomas:[] }
+      : { id:r.id, nome:r.nome || '', user_id:r.user_id || null,
+          inicio:r.inicio || '', entrega:r.entrega || '',
+          urgencia:r.urgencia || 'media', status:r.status || 'pendente' };
+    m.depts[r.dept].editors.push(e);
+    editorById.set(e.id, e);
+  });
+
+  [...store.rows.values()].sort(byPosition).forEach(r => {
+    const e = editorById.get(r.editor_id);
+    if(e && e.idiomas) e.idiomas.push({
+      id: r.id,
+      idioma: r.idioma || '',
+      inicio: r.inicio || '',
+      entrega: r.entrega || '',
+      urgencia: r.urgencia || 'media',
+      status: r.status || 'pendente',
+      revisor: r.revisor || '',
+      statusRevisao: r.status_revisao || 'pendente'
+    });
+  });
+
+  completedMovies = [...store.completed.values()]
+    .sort((a, b) => (Date.parse(b.concluido_em) || 0) - (Date.parse(a.concluido_em) || 0))
+    .map(r => ({
+      id: r.id,
+      nome: r.nome || '',
+      concluidoEm: r.concluido_em,
+      entries: Array.isArray(r.entries) ? r.entries : []
+    }));
+
+  const settings = store.settings.get(1);
+  productionMovieId = settings ? settings.production_movie_id : null;
 }
-function blankSimpleEditor(n){
-  return { id: uid(), nome: 'Editor ' + n, inicio:'', entrega:'', urgencia:'media', status:'pendente' };
+
+/* ---------- GRAVAÇÃO NO SERVIDOR ----------
+   Todas as gravações passam por uma fila (uma de cada vez, na ordem em que
+   foram feitas). Campos de texto esperam TEXT_SAVE_DELAY ms sem digitação
+   antes de gravar. A tela é atualizada na hora (otimista); se o servidor
+   recusar, os dados são recarregados do servidor. */
+
+let writeChain = Promise.resolve();
+let inflightWrites = 0;
+let lastWriteFailed = false;
+const pendingPatches = new Map();  // "tipo:id" -> { kind, id, patch, timer }
+const inflightByKey = new Map();   // "tipo:id" -> gravações em andamento
+let lastErrorAlertAt = 0;
+let lastFetchAt = 0;
+
+function rowKey(kind, id){ return kind + ':' + id; }
+
+function hasUnsavedChanges(){
+  return pendingPatches.size > 0 || inflightWrites > 0;
 }
-function blankMovie(){
-  const vocalEditors = [], efeitosEditors = [], musicaEditors = [];
-  for(let i=1;i<=DEFAULT_EDITORS;i++){
-    vocalEditors.push(blankVocalEditor(i));
-    efeitosEditors.push(blankSimpleEditor(i));
-    musicaEditors.push(blankSimpleEditor(i));
+
+function updateSaveIndicator(){
+  if(!currentUser) return;
+  if(hasUnsavedChanges()) setSaveStatus('saving', 'Salvando alterações...');
+  else if(lastWriteFailed) setSaveStatus('error', 'Erro ao salvar');
+  else setSaveStatus('saved', 'Alterações salvas');
+}
+
+function setSaveStatus(state, message){
+  const status = document.getElementById('saveStatus');
+
+  if(!status) return;
+
+  status.classList.remove('saved', 'saving', 'error');
+  status.classList.add(state);
+  status.textContent = '● ' + message;
+}
+
+function enqueueWrite(fn){
+  inflightWrites++;
+  updateSaveIndicator();
+  const run = writeChain
+    .then(fn)
+    .then(
+      result => { lastWriteFailed = false; return result; },
+      err => { handleWriteError(err); return undefined; }
+    )
+    .finally(() => { inflightWrites--; updateSaveIndicator(); });
+  writeChain = run.catch(() => {});
+  return run;
+}
+
+function isPermissionError(err){
+  return !!err && (err.code === '42501' || err.code === 'PGRST116' || /permiss/i.test(err.message || ''));
+}
+
+function handleWriteError(err){
+  console.error('Falha ao salvar no servidor', err);
+  lastWriteFailed = true;
+  const now = Date.now();
+  if(now - lastErrorAlertAt > 5000){
+    lastErrorAlertAt = now;
+    alert(isPermissionError(err)
+      ? 'O servidor recusou esta alteração (sem permissão ou o item foi removido por outra pessoa). Os dados serão recarregados.'
+      : 'Não foi possível salvar a última alteração. Verifique a conexão. Os dados serão recarregados do servidor.');
   }
-  return {
-  id: uid(),
-nome:'',
-caminho51:'',
-caminho20:'',
-poster:'',
-movieLinks:[],
-    depts: {
-      vocal:   { editors: vocalEditors },
-      efeitos: { editors: efeitosEditors },
-      musica:  { editors: musicaEditors }
-    }
-  };
+  refetchAll().then(requestRender).catch(e => console.error('Falha ao recarregar dados', e));
 }
+
+// Aplica uma linha vinda do servidor (resposta de gravação ou Realtime).
+function applyServerRow(kind, row, fromRealtime = false){
+  if(!row || row.id === undefined || row.id === null) return;
+  const key = rowKey(kind, row.id);
+  // Há gravação nossa em andamento nessa linha: a resposta dela traz o valor final.
+  if(fromRealtime && (inflightByKey.get(key) || 0) > 0) return;
+
+  const existing = store[kind].get(row.id);
+  if(existing && existing.updated_at && row.updated_at
+     && Date.parse(row.updated_at) < Date.parse(existing.updated_at)) return; // chegou fora de ordem
+
+  const merged = existing ? { ...existing } : {};
+  Object.keys(row).forEach(col => {
+    const value = row[col];
+    // Realtime pode omitir colunas grandes não alteradas (ex.: pôster).
+    if(value === undefined) return;
+    if(value === null && existing && !NULLABLE_COLUMNS.has(col)) return;
+    merged[col] = value;
+  });
+  const pending = pendingPatches.get(key);
+  store[kind].set(row.id, pending ? Object.assign(merged, pending.patch) : merged);
+}
+
+function removeLocal(kind, id){
+  store[kind].delete(id);
+  if(kind === 'movies'){
+    for(const [linkId, link] of store.links) if(link.movie_id === id) store.links.delete(linkId);
+    for(const [editorId, editor] of store.editors) if(editor.movie_id === id) removeLocal('editors', editorId);
+    const settings = store.settings.get(1);
+    if(settings && settings.production_movie_id === id) settings.production_movie_id = null;
+  }
+  if(kind === 'editors'){
+    for(const [rowId, row] of store.rows) if(row.editor_id === id) store.rows.delete(rowId);
+  }
+  // descarta alterações ainda não enviadas de linhas que não existem mais
+  for(const [key, p] of pendingPatches){
+    if(!store[p.kind].has(p.id)){ clearTimeout(p.timer); pendingPatches.delete(key); }
+  }
+}
+
+// Altera campos de UMA linha. delay > 0: espera o usuário parar de digitar.
+function patchRow(kind, id, patch, delay = 0){
+  const row = store[kind].get(id);
+  if(!row) return;
+  Object.assign(row, patch);
+  rebuildState();
+
+  const key = rowKey(kind, id);
+  let p = pendingPatches.get(key);
+  if(!p){ p = { kind, id, patch:{}, timer:null }; pendingPatches.set(key, p); }
+  Object.assign(p.patch, patch);
+  clearTimeout(p.timer);
+  if(delay > 0){
+    p.timer = setTimeout(() => flushPatch(key), delay);
+    updateSaveIndicator();
+  }else{
+    flushPatch(key);
+  }
+}
+
+function flushPatch(key){
+  const p = pendingPatches.get(key);
+  if(!p) return Promise.resolve();
+  clearTimeout(p.timer);
+  pendingPatches.delete(key);
+  inflightByKey.set(key, (inflightByKey.get(key) || 0) + 1);
+  const done = () => {
+    const n = (inflightByKey.get(key) || 1) - 1;
+    if(n > 0) inflightByKey.set(key, n); else inflightByKey.delete(key);
+  };
+  return enqueueWrite(async () => {
+    try{
+      const { data, error } = await supabaseClient
+        .from(TABLES[p.kind])
+        .update(p.patch)
+        .eq('id', p.id)
+        .select()
+        .maybeSingle();
+      if(error) throw error;
+      if(!data) throw Object.assign(new Error('Alteração não aplicada (sem permissão ou item removido).'), { code:'PGRST116' });
+      done();
+      applyServerRow(p.kind, data);
+      rebuildState();
+      requestRender();
+    }catch(e){
+      done();
+      throw e;
+    }
+  });
+}
+
+function flushAllPatches(){
+  return Promise.all([...pendingPatches.keys()].map(flushPatch));
+}
+
+async function insertRow(kind, values){
+  return enqueueWrite(async () => {
+    const { data, error } = await supabaseClient.from(TABLES[kind]).insert(values).select().single();
+    if(error) throw error;
+    applyServerRow(kind, data);
+    rebuildState();
+    return data;
+  });
+}
+
+function deleteRow(kind, id){
+  removeLocal(kind, id);
+  rebuildState();
+  return enqueueWrite(async () => {
+    const { data, error } = await supabaseClient.from(TABLES[kind]).delete().eq('id', id).select('id');
+    if(error) throw error;
+    if(!data || !data.length) throw Object.assign(new Error('Exclusão não aplicada (sem permissão).'), { code:'PGRST116' });
+  });
+}
+
+function callRpc(name, args){
+  return enqueueWrite(async () => {
+    const { data, error } = await supabaseClient.rpc(name, args);
+    if(error) throw error;
+    return data === null ? true : data;
+  });
+}
+
+/* ---------- LEITURA DO SERVIDOR ---------- */
+
+async function fetchTable(kind){
+  const all = [];
+  const pageSize = 1000;
+  for(let from = 0; ; from += pageSize){
+    const { data, error } = await supabaseClient
+      .from(TABLES[kind])
+      .select('*')
+      .order('id')
+      .range(from, from + pageSize - 1);
+    if(error) throw error;
+    all.push(...data);
+    if(data.length < pageSize) break;
+  }
+  return all;
+}
+
+async function fetchAllNow(){
+  const kinds = Object.keys(TABLES);
+  const results = await Promise.all(kinds.map(fetchTable));
+  kinds.forEach((kind, i) => {
+    store[kind] = new Map(results[i].map(row => [row.id, row]));
+  });
+  // alterações locais ainda não enviadas continuam valendo
+  for(const p of pendingPatches.values()){
+    const row = store[p.kind].get(p.id);
+    if(row) Object.assign(row, p.patch);
+  }
+  lastFetchAt = Date.now();
+  rebuildState();
+}
+
+// Recarrega tudo, na fila (depois das gravações já pedidas).
+function refetchAll(){
+  const run = writeChain.then(fetchAllNow);
+  writeChain = run.catch(() => {});
+  return run;
+}
+
+/* ---------- TEMPO REAL ---------- */
+
+let realtimeChannel = null;
+let realtimeConnected = false;
+let realtimeWasConnected = false;
+let pollTimer = null;
+
+function startRealtime(){
+  stopRealtime();
+  const channel = supabaseClient.channel('estacao-editores-v2');
+  Object.entries(TABLES).forEach(([kind, table]) => {
+    channel.on('postgres_changes', { event:'*', schema:'public', table }, payload => onRealtimeChange(kind, payload));
+  });
+  channel.subscribe(status => {
+    const connected = status === 'SUBSCRIBED';
+    // reconexão: busca o que pode ter mudado enquanto estava desconectado
+    if(connected && realtimeWasConnected && !realtimeConnected){
+      refetchAll().then(requestRender).catch(e => console.error('Falha ao recarregar dados', e));
+    }
+    realtimeConnected = connected;
+    if(connected) realtimeWasConnected = true;
+  });
+  realtimeChannel = channel;
+  // plano B: se o Realtime não conectar, confere o servidor a cada 30 s
+  pollTimer = setInterval(() => {
+    if(!realtimeConnected && currentUser && !document.hidden){
+      refetchAll().then(requestRender).catch(e => console.error('Falha ao recarregar dados', e));
+    }
+  }, 30000);
+}
+
+function stopRealtime(){
+  if(realtimeChannel && supabaseClient) supabaseClient.removeChannel(realtimeChannel);
+  realtimeChannel = null;
+  realtimeConnected = false;
+  realtimeWasConnected = false;
+  clearInterval(pollTimer);
+  pollTimer = null;
+}
+
+function onRealtimeChange(kind, payload){
+  if(payload.eventType === 'DELETE'){
+    const id = payload.old && payload.old.id;
+    if(id === undefined || id === null) return;
+    removeLocal(kind, id);
+  }else{
+    applyServerRow(kind, payload.new, true);
+  }
+  rebuildState();
+  requestRender();
+}
+
+/* Não redesenha a tela enquanto a pessoa está digitando/escolhendo algo
+   (perderia o foco); redesenha assim que ela sair do campo. */
+let renderDeferred = false;
+function isEditingField(){
+  const el = document.activeElement;
+  return !!el && el !== document.body && el.matches('input, select, textarea')
+    && !!el.closest('#content, #movieTabs');
+}
+function requestRender(){
+  if(isEditingField()){ renderDeferred = true; return; }
+  renderDeferred = false;
+  render();
+}
+document.addEventListener('focusout', () => {
+  setTimeout(() => {
+    if(renderDeferred && !isEditingField()){ renderDeferred = false; render(); }
+  }, 0);
+});
+
+/* ---------- PREFERÊNCIAS LOCAIS (filme e aba abertos) ---------- */
+
+function loadUiState(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(UI_KEY) || '{}');
+    activeId = saved.activeId || null;
+    activeDept = DEPTS.some(d => d.key === saved.activeDept) ? saved.activeDept : 'vocal';
+  }catch(e){
+    activeId = null;
+    activeDept = 'vocal';
+  }
+}
+
+function saveUiState(){
+  try{ localStorage.setItem(UI_KEY, JSON.stringify({ activeId, activeDept })); }catch(e){}
+}
+
+/* ---------- CONVERSÃO DE BACKUPS ANTIGOS (usada pelo "Importar dados") ---------- */
 
 function ensureMovieShape(m){
   if(!m.depts) m.depts = {};
@@ -1136,30 +1509,9 @@ function ensureMovieShape(m){
   });
   m.depts.vocal.editors.forEach(e => {
     if(!Array.isArray(e.idiomas)) e.idiomas = [];
-    e.idiomas.forEach(r => {
-      if(!r.statusRevisao) r.statusRevisao = 'andamento';
-      if(r.revisor === undefined) r.revisor = '';
-    });
   });
-  ['efeitos','musica'].forEach(k => {
-    m.depts[k].editors.forEach(e => {
-      if(e.inicio === undefined) e.inicio = '';
-      if(e.entrega === undefined) e.entrega = '';
-      if(!e.urgencia) e.urgencia = 'media';
-      if(!e.status) e.status = 'pendente';
-    });
-  });
- if (m.caminho51 === undefined) {
-  m.caminho51 = m.caminho || '';
-}
-
-if (m.caminho20 === undefined) {
-  m.caminho20 = '';
-}
   return m;
 }
-
-/* ---------- MIGRAÇÃO DE FORMATOS ANTIGOS ---------- */
 
 function migrateVocalEditorLegacy(e){
   if(Array.isArray(e.idiomas) && e.idiomas.length && typeof e.idiomas[0] === 'string'){
@@ -1227,199 +1579,12 @@ function migrateV1ToV3(arr){
   return migrateV2ToV3(fakeV2);
 }
 
-function checkStorage(){
-  try{
-    const testKey = '__storage_test__';
-    localStorage.setItem(testKey, '1');
-    localStorage.removeItem(testKey);
-    storageOk = true;
-  }catch(e){
-    storageOk = false;
-  }
-}
-
-function loadData(){
-  checkStorage();
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw){
-      const parsed = JSON.parse(raw);
-      movies = Array.isArray(parsed.movies) ? parsed.movies : [];
-      completedMovies = Array.isArray(parsed.completedMovies) ? parsed.completedMovies : [];
-      movies.forEach(ensureMovieShape);
-      activeId = parsed.activeMovieId || (movies[0] && movies[0].id) || null;
-    }else{
-      const rawV2 = localStorage.getItem(OLD_STORAGE_KEY_V2);
-      if(rawV2){
-        const migrated = migrateV2ToV3(JSON.parse(rawV2));
-        movies = migrated.movies;
-        activeId = migrated.activeMovieId;
-      }else{
-        const rawV1 = localStorage.getItem(OLD_STORAGE_KEY_V1);
-        if(rawV1){
-          const migrated = migrateV1ToV3(JSON.parse(rawV1));
-          movies = migrated.movies;
-          activeId = migrated.activeMovieId;
-        }
-      }
-    }
-  }catch(e){
-    movies = [];
-    completedMovies = [];
-    activeId = null;
-  }
-  if(!activeId && movies.length) activeId = movies[0].id;
-  applyDeptTheme();
-  render();
-  loadTheme();
-}
-
-function saveData(){
-  // Registra que existe uma nova versão dos dados
-  cloudDataVersion++;
-
-  try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      movies,
-      completedMovies,
-      activeMovieId: activeId,
-      productionMovieId
-    }));
-    storageOk = true;
-  }catch(e){
-    console.error('Falha ao salvar localmente', e);
-    storageOk = false;
-  }
-
-  scheduleCloudSave();
-}
-  function setSaveStatus(state, message){
-  const status = document.getElementById('saveStatus');
-
-  if(!status) return;
-
-  status.classList.remove('saved', 'saving', 'error');
-  status.classList.add(state);
-  status.textContent = '● ' + message;
-}
-function scheduleCloudSave(){
-  if(!cloudEnabled || !supabaseClient || !currentUser) return;
-
-  clearTimeout(cloudSaveTimer);
-
-  cloudSaveTimer = setTimeout(async () => {
-    cloudSaveTimer = null;
-
-    if(cloudSaveInProgress){
-      return;
-    }
-
-    cloudSaveInProgress = true;
-
-    setSaveStatus('saving', 'Salvando alterações...');
-
-    let saveFailed = false;
-
-    try{
-      while(cloudSavedVersion < cloudDataVersion){
-        const versionToSave = cloudDataVersion;
-
-        await saveCloudData();
-
-        cloudSavedVersion = versionToSave;
-      }
-
-      setSaveStatus('saved', 'Alterações salvas');
-
-    }catch(e){
-      console.error('Erro na fila de salvamento', e);
-
-      saveFailed = true;
-
-      setSaveStatus('error', 'Erro ao salvar');
-
-    }finally{
-      cloudSaveInProgress = false;
-
-      // Só agenda novamente se houve uma alteração
-      // enquanto o salvamento estava em andamento.
-      if(!saveFailed && cloudSavedVersion < cloudDataVersion){
-        scheduleCloudSave();
-      }
-    }
-
-  }, 350);
-}
-
-async function saveCloudData(){
-  if(!cloudEnabled || !supabaseClient || !currentUser){
-    throw new Error('Salvamento na nuvem não está disponível.');
-  }
-
-  const payload = {
-    movies,
-    completedMovies,
-    activeMovieId: activeId,
-    productionMovieId,
-    activeDept
-  };
-
-  try{
-    const { error } = await supabaseClient
-      .from(CLOUD_TABLE)
-      .upsert({
-        id: CLOUD_ROW_ID,
-        payload,
-        updated_at: new Date().toISOString(),
-        updated_by: currentUser.id
-      }, { onConflict: 'id' });
-
-    if(error) throw error;
-
-    // Confirma para a fila que o Supabase recebeu os dados.
-    return true;
-
-  }catch(e){
-    console.error('Falha ao salvar na nuvem', e);
-
-    // Informa à fila que o salvamento falhou.
-    throw e;
-  }
-}
-
-async function loadCloudData(){
-  if(!cloudEnabled || !supabaseClient || !currentUser) return false;
-  const { data, error } = await supabaseClient.from(CLOUD_TABLE).select('payload').eq('id', CLOUD_ROW_ID).maybeSingle();
- if(error){
-  console.error('Falha ao carregar dados da nuvem', error);
-  return null;
-}
-  if(data && data.payload){
-    const payload = data.payload;
-    movies = Array.isArray(payload.movies) ? payload.movies : [];
-    completedMovies = Array.isArray(payload.completedMovies) ? payload.completedMovies : [];
-    movies.forEach(ensureMovieShape);
-    activeId = payload.activeMovieId || (movies[0] && movies[0].id) || null;
-    productionMovieId = payload.productionMovieId || null;
-    activeDept = payload.activeDept || 'vocal';
-   try{
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    movies,
-    completedMovies,
-    activeMovieId: activeId,
-    productionMovieId
-  }));
-}catch(e){}
-    return true;
-  }
-  return false;
-}
-
+/* ---------- AÇÕES ---------- */
 
 function switchDept(key){
   activeDept = key;
   openPickerFor = null;
-  saveData();
+  saveUiState();
   applyDeptTheme();
   render();
 }
@@ -1431,7 +1596,7 @@ function applyDeptTheme(){
 
 function exportData(){
   if(!canExport()) return;
-  const blob = new Blob([JSON.stringify({ movies, completedMovies, activeMovieId: activeId }, null, 2)], { type:'application/json' });
+  const blob = new Blob([JSON.stringify({ movies, completedMovies, activeMovieId: activeId, productionMovieId }, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const date = new Date().toISOString().slice(0,10);
@@ -1447,31 +1612,35 @@ function importData(file){
   if(!canImport()) return;
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = function(evt){
+  reader.onload = async function(evt){
+    let payload;
     try{
       const parsed = JSON.parse(evt.target.result);
       if(Array.isArray(parsed)){
-        const migrated = migrateV1ToV3(parsed);
-        movies = migrated.movies;
-        activeId = migrated.activeMovieId;
+        payload = { movies: migrateV1ToV3(parsed).movies, completedMovies: [] };
       }else if(parsed && Array.isArray(parsed.movies)){
-        movies = parsed.movies;
-        completedMovies = Array.isArray(parsed.completedMovies) ? parsed.completedMovies : [];
-        movies.forEach(ensureMovieShape);
-        activeId = parsed.activeMovieId || (movies[0] && movies[0].id) || null;
+        payload = {
+          movies: parsed.movies,
+          completedMovies: Array.isArray(parsed.completedMovies) ? parsed.completedMovies : [],
+          productionMovieId: parsed.productionMovieId || null
+        };
       }else if(parsed && (parsed.vocal || parsed.efeitos || parsed.musica)){
-        const migrated = migrateV2ToV3(parsed);
-        movies = migrated.movies;
-        activeId = migrated.activeMovieId;
+        payload = { movies: migrateV2ToV3(parsed).movies, completedMovies: [] };
       }else{
         throw new Error('formato inválido');
       }
-      if(!activeId && movies.length) activeId = movies[0].id;
-      saveData();
-      render();
     }catch(e){
       alert('Não foi possível importar este arquivo. Verifique se é um backup exportado por este painel.');
+      return;
     }
+    if(!confirm('Importar este backup vai SUBSTITUIR todos os filmes e o histórico atuais, para todos os usuários. Continuar?')) return;
+    const result = await callRpc('station_import', { p: payload });
+    if(!result) return;
+    try{ await refetchAll(); }catch(e){ console.error(e); }
+    activeId = movies.length ? movies[0].id : null;
+    saveUiState();
+    render();
+    alert('Importação concluída.');
   };
   reader.readAsText(file);
 }
@@ -1489,92 +1658,92 @@ function loadTheme(){
   setTheme(t);
 }
 
-function addMovie(){
+async function addMovie(){
   if(!canManageWork()) return;
-  const m = blankMovie();
-  movies.unshift(m);
-  activeId = m.id;
-  saveData();
+  const id = await callRpc('station_create_movie', {});
+  if(!id) return;
+  try{ await refetchAll(); }catch(e){ console.error(e); }
+  activeId = id;
+  currentView = 'production';
+  saveUiState();
   render();
 }
 
 function deleteMovie(id){
   if(!canDelete()) return;
   if(!confirm('Remover este filme e todos os dados associados (Vocal + Efeitos + Música)?')) return;
-  movies = movies.filter(m=>m.id!==id);
+  deleteRow('movies', id);
   if(activeId===id) activeId = movies.length ? movies[0].id : null;
-  saveData();
+  saveUiState();
   render();
 }
 
-function completeMovie(id){
+async function completeMovie(id){
   if(!canCompleteMovie()) return;
   const movie = movies.find(m => m.id === id);
   if(!movie) return;
   if(!confirm('Marcar este filme como concluído? Ele sairá da lista de produção e será adicionado ao histórico.')) return;
 
-  const entries = movie.depts.vocal.editors.flatMap(editor =>
-    editor.idiomas.map(row => ({
-      idioma: row.idioma || 'Não informado',
-      editor: editor.nome || 'Não informado',
-      revisor: row.revisor || 'Não informado'
-    }))
-  );
-  completedMovies.unshift({
-    id: uid(),
-    nome: movie.nome || 'Sem título',
-    concluidoEm: new Date().toISOString(),
-    entries: entries.length ? entries : [{ idioma:'Não informado', editor:'Não informado', revisor:'Não informado' }]
-  });
-  movies = movies.filter(m => m.id !== id);
+  const ok = await callRpc('station_complete_movie', { p_movie_id: id });
+  if(!ok) return;
+  try{ await refetchAll(); }catch(e){ console.error(e); }
   if(activeId === id) activeId = movies.length ? movies[0].id : null;
   currentView = 'history';
-  saveData();
+  saveUiState();
   render();
 }
 
-function addEditorRow(movieId){
+function nextPosition(rows){
+  return rows.reduce((max, r) => Math.max(max, r.position || 0), 0) + 1;
+}
+
+async function addEditorRow(movieId){
   if(!canManageWork()) return;
-  const m = movies.find(m=>m.id===movieId);
-  const arr = m.depts[activeDept].editors;
-  arr.push(activeDept === 'vocal' ? blankVocalEditor(arr.length+1) : blankSimpleEditor(arr.length+1));
-  saveData();
+  const dept = activeDept;
+  const existing = [...store.editors.values()].filter(e => e.movie_id === movieId && e.dept === dept);
+  await insertRow('editors', {
+    movie_id: movieId,
+    dept,
+    position: nextPosition(existing),
+    nome: 'Editor ' + (existing.length + 1)
+  });
   render();
 }
 
 function removeEditorRow(movieId, editorId){
   if(!canDelete()) return;
-  const m = movies.find(m=>m.id===movieId);
-  m.depts[activeDept].editors = m.depts[activeDept].editors.filter(e=>e.id!==editorId);
-  saveData();
+  deleteRow('editors', editorId);
   render();
 }
 
-function updateEditorName(movieId, editorId, value){
+function assignEditorUser(movieId, editorId, userId){
   if(!canManageWork()) return;
-  const m = movies.find(m=>m.id===movieId);
-  const e = m.depts.vocal.editors.find(e=>e.id===editorId);
-  e.nome = value;
-  saveData();
+
+  const user = stationUsers.find(item => item.user_id === userId);
+  if(!user) return;
+
+  patchRow('editors', editorId, { user_id: user.user_id, nome: user.editor_name || '' });
+  render();
 }
 
 function updateMovieField(movieId, field, value){
   if(!isAdmin()) return;
-  const m = movies.find(m=>m.id===movieId);
-  m[field] = value;
-  saveData();
+  if(!['nome', 'drive'].includes(field)) return;
+  patchRow('movies', movieId, { [field]: value }, TEXT_SAVE_DELAY);
+  if(field === 'nome') renderMovieTabs();
 }
+
+const ROW_COLUMNS = { statusRevisao: 'status_revisao' };
 
 function updateLangRowField(movieId, editorId, rowId, field, value){
   const m = movies.find(m=>m.id===movieId);
-  const e = m.depts.vocal.editors.find(e=>e.id===editorId);
-  if(!canEditTask(e, field)) return;
-  const row = e.idiomas.find(r=>r.id===rowId);
-  row[field] = value;
-  if(field==='status' && value==='concluido'){
-    row.entrega = todayISO();
-  }
-  saveData();
+  const e = m && m.depts.vocal.editors.find(e=>e.id===editorId);
+  if(!e || !canEditTask(e, field)) return;
+  const patch = { [ROW_COLUMNS[field] || field]: value };
+  // A data de entrega também é preenchida pelo servidor; aqui só para a tela.
+  if(field==='status' && value==='concluido') patch.entrega = todayISO();
+  const isText = field === 'revisor';
+  patchRow('rows', rowId, patch, isText ? TEXT_SAVE_DELAY : 0);
   if(field==='urgencia' || field==='status' || field==='statusRevisao'){
     render();
   }
@@ -1582,13 +1751,11 @@ function updateLangRowField(movieId, editorId, rowId, field, value){
 
 function updateSimpleEditorField(movieId, editorId, field, value){
   const m = movies.find(m=>m.id===movieId);
-  const e = m.depts[activeDept].editors.find(e=>e.id===editorId);
-  if(!canEditTask(e, field)) return;
-  e[field] = value;
-  if(field==='status' && value==='concluido'){
-    e.entrega = todayISO();
-  }
-  saveData();
+  const e = m && m.depts[activeDept].editors.find(e=>e.id===editorId);
+  if(!e || !canEditTask(e, field)) return;
+  const patch = { [field]: value };
+  if(field==='status' && value==='concluido') patch.entrega = todayISO();
+  patchRow('editors', editorId, patch, field === 'nome' ? TEXT_SAVE_DELAY : 0);
   if(field==='urgencia' || field==='status'){
     render();
   }
@@ -1603,11 +1770,8 @@ function todayISO(){
 }
 
 function removeLangRow(movieId, editorId, rowId){
-  if(!canManageWork()) return;
-  const m = movies.find(m=>m.id===movieId);
-  const e = m.depts.vocal.editors.find(e=>e.id===editorId);
-  e.idiomas = e.idiomas.filter(r=>r.id!==rowId);
-  saveData();
+  if(!canDelete()) return;
+  deleteRow('rows', rowId);
   render();
 }
 
@@ -1624,15 +1788,12 @@ function toggleLangPicker(editorId){
   }
 }
 
-function addLanguageRow(movieId, editorId, lang){
+async function addLanguageRow(movieId, editorId, lang){
   if(!canManageWork()) return;
-  const m = movies.find(m=>m.id===movieId);
-  const e = m.depts.vocal.editors.find(e=>e.id===editorId);
-  if(!e.idiomas.some(r=>r.idioma===lang)){
-    e.idiomas.push(blankLangRow(lang));
-  }
   openPickerFor = null;
-  saveData();
+  const existing = [...store.rows.values()].filter(r => r.editor_id === editorId);
+  if(existing.some(r => r.idioma === lang)){ render(); return; }
+  await insertRow('rows', { editor_id: editorId, idioma: lang, position: nextPosition(existing) });
   render();
 }
 
@@ -1647,6 +1808,8 @@ function triggerPosterUpload(movieId){
   if(inp) inp.click();
 }
 
+const MAX_POSTER_BYTES = 2 * 1024 * 1024;
+
 function handlePosterUpload(movieId, file){
   if(!isAdmin()) return;
   if(!file) return;
@@ -1654,17 +1817,13 @@ function handlePosterUpload(movieId, file){
     alert('Por favor selecione uma imagem no formato JPEG (.jpg ou .jpeg).');
     return;
   }
+  if(file.size > MAX_POSTER_BYTES){
+    alert('Esta imagem é muito grande (máximo 2 MB). Tente uma imagem em resolução menor.');
+    return;
+  }
   const reader = new FileReader();
   reader.onload = function(evt){
-    const m = movies.find(m=>m.id===movieId);
-    const anterior = m.poster;
-    m.poster = evt.target.result;
-    saveData();
-    if(!storageOk){
-      alert('Esta imagem é muito grande para ser salva no armazenamento local do navegador. Tente uma imagem em resolução menor.');
-      m.poster = anterior;
-      saveData();
-    }
+    patchRow('movies', movieId, { poster: evt.target.result });
     render();
   };
   reader.readAsDataURL(file);
@@ -1673,20 +1832,19 @@ function handlePosterUpload(movieId, file){
 function removePoster(movieId, ev){
   if(!isAdmin()) return;
   if(ev) ev.stopPropagation();
-  const m = movies.find(m=>m.id===movieId);
-  m.poster = '';
-  saveData();
+  patchRow('movies', movieId, { poster: '' });
   render();
 }
 function copyPath(movieId, field, buttonId){
   const m = movies.find(m => m.id === movieId);
   const value = m ? (m[field] || '') : '';
+  copyText(value, document.getElementById(buttonId));
+}
 
+function copyText(value, btn){
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(value).catch(()=>{});
+    navigator.clipboard.writeText(value || '').catch(()=>{});
   }
-
-  const btn = document.getElementById(buttonId);
 
   if(btn){
     const old = btn.textContent;
@@ -1733,16 +1891,6 @@ function stagePercent(m, deptKey){
 function overallPercent(m){
   const pcts = DEPTS.map(d => stagePercent(m, d.key));
   return Math.round(pcts.reduce((a,b)=>a+b,0) / pcts.length);
-}
-
-function movieOverallCounts(m){
-  let total = 0, done = 0;
-  DEPTS.forEach(d => {
-    const rows = stageRows(m, d.key);
-    total += rows.length;
-    done += rows.filter(r=>r.status==='concluido').length;
-  });
-  return { done, total };
 }
 
 function deptStatusForMovie(m, deptKey){
@@ -1916,24 +2064,24 @@ function selectMovie(id){
   activeId = id;
   currentView = 'production';
   openPickerFor = null;
-  saveData();
+  saveUiState();
   render();
 }
-  function setProductionMovie(id){
+function setProductionMovie(id){
   if(!canManageWork()) return;
 
   const movie = movies.find(m => m.id === id);
   if(!movie) return;
 
-  productionMovieId = id;
+  patchRow('settings', 1, { production_movie_id: id });
   activeId = id;
   currentView = 'production';
   openPickerFor = null;
 
-  saveData();
+  saveUiState();
   render();
 }
-  function startMovieDrag(event, id){
+function startMovieDrag(event, id){
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', id);
 }
@@ -1950,24 +2098,23 @@ function dropMovie(event, targetId){
 
   if(!draggedId || draggedId === targetId) return;
 
-  const draggedIndex = movies.findIndex(m => m.id === draggedId);
-  const targetIndex = movies.findIndex(m => m.id === targetId);
+  const order = movies.map(m => m.id);
+  const draggedIndex = order.indexOf(draggedId);
+  const targetIndex = order.indexOf(targetId);
 
   if(draggedIndex === -1 || targetIndex === -1) return;
 
-  const draggedMovie = movies.splice(draggedIndex, 1)[0];
+  order.splice(draggedIndex, 1);
+  order.splice(order.indexOf(targetId), 0, draggedId);
 
-  const newTargetIndex = movies.findIndex(m => m.id === targetId);
-
-  movies.splice(newTargetIndex, 0, draggedMovie);
-
-  saveData();
+  // aplica na tela já, e grava a ordem completa no servidor
+  order.forEach((id, i) => {
+    const row = store.movies.get(id);
+    if(row) row.position = i + 1;
+  });
+  rebuildState();
+  callRpc('station_reorder_movies', { p_ids: order });
   render();
-}
-
-function syncTabName(id, value){
-  const chip = document.getElementById('tab-'+id);
-  if(chip) chip.firstChild.textContent = (value || 'Sem título') + ' ';
 }
 
 function render(){
@@ -2026,7 +2173,7 @@ if(!m){
       </div>
       <div class="panel-footer">
         ${canManageWork() ? `<button class="add-editor-btn" onclick="addEditorRow('${m.id}')">+ Adicionar editor</button>` : '<span></span>'}
-        <span class="hint">Clique nos campos para editar — salvamento automático e sincronização pela conta</span>
+        <span class="hint">Clique nos campos para editar — salvamento automático e sincronização em tempo real</span>
       </div>
     </div>
   `;
@@ -2043,7 +2190,7 @@ function movieHeaderHtml(m){
     : `<div class="poster-upload" title="Somente o administrador pode alterar o pôster">${poster}</div>`;
   const titleHtml = isAdmin()
     ? `<input type="text" placeholder="Ex: A Última Sessão" value="${esc(m.nome)}"
-        oninput="updateMovieField('${m.id}','nome', this.value); syncTabName('${m.id}', this.value)">`
+        oninput="updateMovieField('${m.id}','nome', this.value)">`
     : `<div class="readonly-value">${esc(m.nome) || 'Sem título'}</div>`;
   return `
     <div class="movie-header">
@@ -2061,6 +2208,10 @@ function movieHeaderHtml(m){
     </div>
   `;
 }
+
+/* ---------- LINKS DOS ARQUIVOS DO FILME ---------- */
+
+let openLinkLangMenuFor = null;
 
 function pathRowHtml(m){
   return `
@@ -2125,63 +2276,15 @@ ${isAdmin() ? `
       box-shadow:0 8px 20px rgba(0,0,0,0.35);
     "
   >
-
-   <button
-  type="button"
-  onclick="selectMovieLinkType('${m.id}', 'Filmes 5.1')"
-  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
->
-  Filmes 5.1
-</button>
-
-<button
-  type="button"
-  onclick="selectMovieLinkType('${m.id}', 'Filmes 2.0')"
-  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
->
-  Filmes 2.0
-</button>
-
-<button
-  type="button"
-  onclick="selectMovieLinkType('${m.id}', 'Filmes_entrada')"
-  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
->
-  Filmes_entrada
-</button>
-
-<button
-  type="button"
-  onclick="selectMovieLinkType('${m.id}', '6_channels')"
-  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
->
-  6_channels
-</button>
-
-<button
-  type="button"
-  onclick="selectMovieLinkType('${m.id}', 'Filmes 7.1')"
-  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
->
-  Filmes 7.1
-</button>
-
-<button
-  type="button"
-  onclick="selectMovieLinkType('${m.id}', 'Mono')"
-  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
->
-  Mono
-</button>
-
-<button
-  type="button"
-  onclick="selectMovieLinkType('${m.id}', 'Stereo')"
-  style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
->
-  Stereo
-</button>
-
+    ${MOVIE_LINK_TYPES.map(type => `
+    <button
+      type="button"
+      onclick="selectMovieLinkType('${m.id}', '${type}')"
+      style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
+    >
+      ${type}
+    </button>
+    `).join('')}
   </div>
 
 </div>
@@ -2190,7 +2293,16 @@ ${isAdmin() ? `
   id="movieLinks-${m.id}"
   class="movie-links-list"
 >
-  ${(Array.isArray(m.movieLinks) ? m.movieLinks.slice(1) : []).map(link => `
+  ${(Array.isArray(m.movieLinks) ? m.movieLinks.slice(1) : []).map(link => movieLinkHtml(m, link)).join('')}
+</div>
+        </div>
+      </div>
+    </div>
+ `;
+}
+
+function movieLinkHtml(m, link){
+  return `
     <div
       class="path-audio-field"
       id="${link.id}"
@@ -2199,10 +2311,10 @@ ${isAdmin() ? `
       <!-- IDIOMAS DESTE LINK -->
       <div
         class="movie-link-languages"
-        style="margin-bottom:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"
+        style="margin-bottom:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; position:relative;"
       >
 
-               ${(Array.isArray(link.languages) ? link.languages : []).map(lang => `
+        ${(Array.isArray(link.languages) ? link.languages : []).map(lang => `
           <span
             class="movie-language-tag"
             data-language="${esc(lang.id || '')}"
@@ -2234,46 +2346,30 @@ ${isAdmin() ? `
 
             <span>${esc(lang.name || '')}</span>
 
-<button
-  type="button"
-  class="remove-language-btn"
-  onclick="
-    event.preventDefault();
-    event.stopPropagation();
-
-    const movie = movies.find(movie => movie.id === '${m.id}');
-    const savedLink = movie?.movieLinks?.find(link => link.id === '${link.id}');
-
-    if (savedLink && Array.isArray(savedLink.languages)) {
-      savedLink.languages = savedLink.languages.filter(
-        lang => lang.id !== '${lang.id}'
-      );
-
-      saveData();
-    }
-
-    this.closest('.movie-language-tag')?.remove();
-  "
-  style="
-    background:none;
-    border:none;
-    color:#ffffff;
-    cursor:pointer;
-    font-size:14px;
-    padding:0;
-    line-height:1;
-  "
-  title="Remover idioma"
->
-  ×
-</button>
+            <button
+              type="button"
+              class="remove-language-btn"
+              onclick="event.preventDefault(); event.stopPropagation(); removeLinkLanguage('${link.id}', '${lang.id}')"
+              style="
+                background:none;
+                border:none;
+                color:#ffffff;
+                cursor:pointer;
+                font-size:14px;
+                padding:0;
+                line-height:1;
+              "
+              title="Remover idioma"
+            >
+              ×
+            </button>
           </span>
         `).join('')}
 
         ${isAdmin() ? `
           <button
             type="button"
-            onclick="addMovieLanguage('${link.id}')"
+            onclick="event.stopPropagation(); toggleLinkLanguageMenu('${link.id}')"
             style="
               background:#374151;
               color:#ffffff;
@@ -2289,6 +2385,8 @@ ${isAdmin() ? `
           </button>
         ` : ''}
 
+        ${openLinkLangMenuFor === link.id ? linkLanguageMenuHtml(link) : ''}
+
       </div>
 
       <span class="audio-path-label">
@@ -2301,34 +2399,20 @@ ${isAdmin() ? `
           type="text"
           placeholder="Caminho ou link do filme"
           value="${esc(link.url || '')}"
-          oninput="
-            const movie = movies.find(movie => movie.id === '${m.id}');
-            const savedLink = movie?.movieLinks?.find(l => l.id === '${link.id}');
-            if (savedLink) {
-              savedLink.url = this.value;
-              saveData();
-            }
-          "
+          oninput="updateMovieLinkUrl('${link.id}', this.value)"
         >
 
         <button
           class="copy-btn"
           type="button"
-          onclick="navigator.clipboard.writeText(this.previousElementSibling.value)"
+          onclick="copyText(this.previousElementSibling.value, this)"
         >
           Copiar
         </button>
 
         <button
           type="button"
-          onclick="
-            const movie = movies.find(movie => movie.id === '${m.id}');
-            if (movie && Array.isArray(movie.movieLinks)) {
-              movie.movieLinks = movie.movieLinks.filter(l => l.id !== '${link.id}');
-              saveData();
-            }
-            document.getElementById('${link.id}')?.remove();
-          "
+          onclick="removeMovieLink('${link.id}')"
           style="
             background:#dc2626;
             color:#ffffff;
@@ -2349,394 +2433,75 @@ ${isAdmin() ? `
       </div>
 
     </div>
-  `).join('')}
-</div>
- `;
-}
-  function getCountryFlag(countryCode) {
-  const code = String(countryCode || '').trim().toUpperCase();
-
-  if (!/^[A-Z]{2}$/.test(code)) {
-    return '🏳️';
-  }
-
-  return [...code]
-    .map(char => String.fromCodePoint(127397 + char.charCodeAt(0)))
-    .join('');
-}
-function addMovieLanguage(linkId) {
-  if (!isAdmin()) return;
-  const linkRow = document.getElementById(linkId);
-
-  if (!linkRow) return;
-
-  const languagesContainer = linkRow.querySelector('.movie-link-languages');
-
-  if (!languagesContainer) return;
-
-  const oldMenu = languagesContainer.querySelector('.movie-language-menu');
-
-  if (oldMenu) {
-    oldMenu.remove();
-    return;
-  }
-
-  const languages = [
-    ['BR-51', 'BR', 'Português (BR) 5.1'],
-    ['BR-20', 'BR', 'Português (BR) 2.0'],
-    ['PT-51', 'PT', 'Português (PT) 5.1'],
-    ['PT-20', 'PT', 'Português (PT) 2.0'],
-    ['US-51', 'US', 'Inglês 5.1'],
-    ['US-20', 'US', 'Inglês 2.0'],
-    ['ES-51', 'ES', 'Espanhol 5.1'],
-    ['ES-20', 'ES', 'Espanhol 2.0'],
-    ['MX-51', 'MX', 'Espanhol (LATAM) 5.1'],
-    ['MX-20', 'MX', 'Espanhol (LATAM) 2.0'],
-    ['FR-51', 'FR', 'Francês 5.1'],
-    ['FR-20', 'FR', 'Francês 2.0'],
-    ['DE-51', 'DE', 'Alemão 5.1'],
-    ['DE-20', 'DE', 'Alemão 2.0'],
-    ['IT-51', 'IT', 'Italiano 5.1'],
-    ['IT-20', 'IT', 'Italiano 2.0'],
-    ['NL-51', 'NL', 'Holandês 5.1'],
-    ['NL-20', 'NL', 'Holandês 2.0'],
-    ['RU-51', 'RU', 'Russo 5.1'],
-    ['RU-20', 'RU', 'Russo 2.0'],
-    ['PL-51', 'PL', 'Polonês 5.1'],
-    ['PL-20', 'PL', 'Polonês 2.0'],
-    ['UA-51', 'UA', 'Ucraniano 5.1'],
-    ['UA-20', 'UA', 'Ucraniano 2.0'],
-    ['SE-51', 'SE', 'Sueco 5.1'],
-    ['SE-20', 'SE', 'Sueco 2.0'],
-    ['NO-51', 'NO', 'Norueguês 5.1'],
-    ['NO-20', 'NO', 'Norueguês 2.0'],
-    ['DK-51', 'DK', 'Dinamarquês 5.1'],
-    ['DK-20', 'DK', 'Dinamarquês 2.0'],
-    ['FI-51', 'FI', 'Finlandês 5.1'],
-    ['FI-20', 'FI', 'Finlandês 2.0'],
-    ['GR-51', 'GR', 'Grego 5.1'],
-    ['GR-20', 'GR', 'Grego 2.0'],
-    ['TR-51', 'TR', 'Turco 5.1'],
-    ['TR-20', 'TR', 'Turco 2.0'],
-    ['SA-51', 'SA', 'Árabe 5.1'],
-    ['SA-20', 'SA', 'Árabe 2.0'],
-    ['IL-51', 'IL', 'Hebraico 5.1'],
-    ['IL-20', 'IL', 'Hebraico 2.0'],
-    ['IR-51', 'IR', 'Persa (Farsi) 5.1'],
-    ['IR-20', 'IR', 'Persa (Farsi) 2.0'],
-    ['IN-HI-51', 'IN', 'Hindi 5.1'],
-    ['IN-HI-20', 'IN', 'Hindi 2.0'],
-    ['BD-51', 'BD', 'Bengali 5.1'],
-    ['BD-20', 'BD', 'Bengali 2.0'],
-    ['PK-51', 'PK', 'Urdu 5.1'],
-    ['PK-20', 'PK', 'Urdu 2.0'],
-    ['IN-TA-51', 'IN', 'Tâmil 5.1'],
-    ['IN-TA-20', 'IN', 'Tâmil 2.0'],
-    ['IN-TE-51', 'IN', 'Telugu 5.1'],
-    ['IN-TE-20', 'IN', 'Telugu 2.0'],
-    ['CN-51', 'CN', 'Chinês (Mandarim) 5.1'],
-    ['CN-20', 'CN', 'Chinês (Mandarim) 2.0'],
-    ['HK-51', 'HK', 'Chinês (Cantonês) 5.1'],
-    ['HK-20', 'HK', 'Chinês (Cantonês) 2.0'],
-    ['JP-51', 'JP', 'Japonês 5.1'],
-    ['JP-20', 'JP', 'Japonês 2.0'],
-    ['KR-51', 'KR', 'Coreano 5.1'],
-    ['KR-20', 'KR', 'Coreano 2.0'],
-    ['VN-51', 'VN', 'Vietnamita 5.1'],
-    ['VN-20', 'VN', 'Vietnamita 2.0'],
-    ['TH-51', 'TH', 'Tailandês 5.1'],
-    ['TH-20', 'TH', 'Tailandês 2.0'],
-    ['ID-51', 'ID', 'Indonésio 5.1'],
-    ['ID-20', 'ID', 'Indonésio 2.0'],
-    ['MY-51', 'MY', 'Malaio 5.1'],
-    ['MY-20', 'MY', 'Malaio 2.0'],
-    ['PH-51', 'PH', 'Filipino (Tagalo) 5.1'],
-    ['PH-20', 'PH', 'Filipino (Tagalo) 2.0'],
-    ['HU-51', 'HU', 'Húngaro 5.1'],
-    ['HU-20', 'HU', 'Húngaro 2.0'],
-    ['CZ-51', 'CZ', 'Tcheco 5.1'],
-    ['CZ-20', 'CZ', 'Tcheco 2.0'],
-    ['SK-51', 'SK', 'Eslovaco 5.1'],
-    ['SK-20', 'SK', 'Eslovaco 2.0'],
-    ['RO-51', 'RO', 'Romeno 5.1'],
-    ['RO-20', 'RO', 'Romeno 2.0'],
-    ['BG-51', 'BG', 'Búlgaro 5.1'],
-    ['BG-20', 'BG', 'Búlgaro 2.0'],
-    ['CA-51', 'ES', 'Catalão 5.1'],
-    ['CA-20', 'ES', 'Catalão 2.0'],
-    ['IS-51', 'IS', 'Islandês 5.1'],
-    ['IS-20', 'IS', 'Islandês 2.0'],
-  ];
-
-  const menu = document.createElement('div');
-
-  menu.className = 'movie-language-menu';
-
- menu.style.cssText =
-  'position:absolute;' +
-  'z-index:99999;' +
-  'left:0;' +
-  'top:100%;' +
-  'margin-top:4px;' +
-  'background:#1f2937;' +
-  'border:1px solid #4b5563;' +
-  'border-radius:8px;' +
-  'padding:6px;' +
-  'display:flex;' +
-  'flex-direction:column;' +
-  'gap:3px;' +
-  'min-width:250px;' +
-  'max-height:260px;' +
-  'overflow-y:auto;' +
-  'box-shadow:0 8px 20px rgba(0,0,0,.35);';
-  languages.forEach(function(language) {
-
-    const languageId = language[0];
-    const countryCode = language[1];
-    const name = language[2];
-
-    const option = document.createElement('div');
-
-    option.className = 'movie-language-option';
-    option.dataset.language = languageId;
-    option.dataset.country = countryCode;
-    option.dataset.name = name;
-
-    option.style.cssText = `
-      background:transparent;
-      color:#ffffff;
-      padding:8px 10px;
-      border-radius:6px;
-      cursor:pointer;
-      text-align:left;
-      font-size:12px;
-      font-weight:600;
-      width:100%;
-      box-sizing:border-box;
-    `;
-
-    option.innerHTML = `
-      <img
-        src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png"
-        alt=""
-        width="24"
-        height="18"
-        style="width:24px;height:18px;object-fit:cover;border-radius:2px;vertical-align:middle;margin-right:6px;"
-      >
-      <span>${name}</span>
-    `;
-
-    menu.appendChild(option);
-  });
-
-  languagesContainer.style.position = 'relative';
-  languagesContainer.appendChild(menu);
-
-menu.addEventListener(
-  'click',
-  function(event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const option = event.target.closest('.movie-language-option');
-
-    if (!option) {
-      console.log('NÃO ENCONTROU A OPÇÃO DE IDIOMA');
-      return;
-    }
-
-    console.log('IDIOMA CLICADO:', option.dataset.language);
-
-  const languageId = option.dataset.language;
-  const countryCode = option.dataset.country;
-  const name = option.dataset.name;
-
-  if (!languageId || !countryCode || !name) return;
-
-  const existingLanguages =
-    languagesContainer.querySelectorAll('.movie-language-tag');
-
-  for (const element of existingLanguages) {
-    if (element.dataset.language === languageId) {
-      return;
-    }
-  }
-
-  const languageElement = document.createElement('span');
-
-  languageElement.className = 'movie-language-tag';
-  languageElement.dataset.language = languageId;
-
-  languageElement.style.cssText = `
-    display:inline-flex;
-    align-items:center;
-    gap:4px;
-    background:#374151;
-    color:#ffffff;
-    padding:4px 8px;
-    border-radius:6px;
-    font-size:12px;
-    font-weight:600;
   `;
+}
 
-  languageElement.innerHTML = `
-    <img
-      src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png"
-      alt=""
-      width="24"
-      height="18"
-      style="width:24px;height:18px;object-fit:cover;border-radius:2px;vertical-align:middle;"
+function linkLanguageMenuHtml(link){
+  const taken = new Set((link.languages || []).map(lang => lang.id));
+  return `
+    <div
+      class="movie-language-menu"
+      onclick="event.stopPropagation()"
+      style="position:absolute; z-index:99999; left:0; top:100%; margin-top:4px; background:#1f2937; border:1px solid #4b5563; border-radius:8px; padding:6px; display:flex; flex-direction:column; gap:3px; min-width:250px; max-height:260px; overflow-y:auto; box-shadow:0 8px 20px rgba(0,0,0,.35);"
     >
-
-    <span>${name}</span>
-
-<button
-  type="button"
-  class="remove-language-btn"
-  style="
-    background:none;
-    border:none;
-    color:#ffffff;
-    cursor:pointer;
-    font-size:14px;
-    padding:0;
-    line-height:1;
-  "
-  title="Remover idioma"
->
-  ×
-</button>
+      ${LINK_LANGUAGES.filter(([id]) => !taken.has(id)).map(([id, country, name]) => `
+        <div
+          class="movie-language-option"
+          onclick="addLinkLanguage('${link.id}', '${id}')"
+          style="background:transparent; color:#ffffff; padding:8px 10px; border-radius:6px; cursor:pointer; text-align:left; font-size:12px; font-weight:600; width:100%; box-sizing:border-box;"
+        >
+          <img
+            src="https://flagcdn.com/24x18/${country.toLowerCase()}.png"
+            alt=""
+            width="24"
+            height="18"
+            style="width:24px;height:18px;object-fit:cover;border-radius:2px;vertical-align:middle;margin-right:6px;"
+          >
+          <span>${name}</span>
+        </div>
+      `).join('')}
+    </div>
   `;
-
-  const addButton =
-    languagesContainer.querySelector(':scope > button');
-
-  if (addButton) {
-    languagesContainer.insertBefore(languageElement, addButton);
-  } else {
-    languagesContainer.appendChild(languageElement);
-  }
-
-  const movie = movies.find(m =>
-    Array.isArray(m.movieLinks) &&
-    m.movieLinks.some(link => link.id === linkId)
-  );
-
-  const savedLink =
-    movie?.movieLinks?.find(link => link.id === linkId);
-
-  if (savedLink) {
-
-    savedLink.languages =
-      Array.isArray(savedLink.languages)
-        ? savedLink.languages
-        : [];
-
-    if (!savedLink.languages.some(lang => lang.id === languageId)) {
-
-      savedLink.languages.push({
-        id: languageId,
-        country: countryCode,
-        name: name
-      });
-
-    }
-
-    console.log(
-      'IDIOMA SALVO NO LINK:',
-      savedLink
-    );
-
-    saveData();
-  }
-
-  const removeButton =
-    languageElement.querySelector('.remove-language-btn');
-
-  removeButton.addEventListener(
-    'click',
-    function(removeEvent) {
-
-      removeEvent.preventDefault();
-      removeEvent.stopPropagation();
-
-      const movie = movies.find(m =>
-        Array.isArray(m.movieLinks) &&
-        m.movieLinks.some(link => link.id === linkId)
-      );
-
-      const savedLink =
-        movie?.movieLinks?.find(link => link.id === linkId);
-
-      if (
-        savedLink &&
-        Array.isArray(savedLink.languages)
-      ) {
-
-        savedLink.languages =
-          savedLink.languages.filter(
-            lang => lang.id !== languageId
-          );
-
-        saveData();
-      }
-
-      languageElement.remove();
-    }
-  );
-
-  setTimeout(function() {
-
-    function closeMenu(event) {
-
-      if (!languagesContainer.contains(event.target)) {
-
-        menu.remove();
-
-        document.removeEventListener(
-          'click',
-          closeMenu
-        );
-
-      }
-    }
-
-    document.addEventListener(
-      'click',
-      closeMenu
-    );
-
-   }, 0);
-
-});
-
 }
-function updateMovieLanguageFlag(input) {
-  const value = input.value.trim().toUpperCase();
 
-  input.value = value;
-
-  const languageElement = input.closest('span');
-
-  if (!languageElement) return;
-
-  const flagElement = languageElement.querySelector('.language-flag');
-
-  if (!flagElement) return;
-
-  // Aceita códigos como PT-BR, EN-US, ES-ES, FR-FR etc.
-  const parts = value.split('-');
-
-  const countryCode = parts.length > 1
-    ? parts[1]
-    : parts[0];
-
-  if (/^[A-Z]{2}$/.test(countryCode)) {
-    flagElement.textContent = getCountryFlag(countryCode);
-  } else {
-    flagElement.textContent = '';
-  }
+function toggleLinkLanguageMenu(linkId){
+  if(!isAdmin()) return;
+  openLinkLangMenuFor = openLinkLangMenuFor === linkId ? null : linkId;
+  render();
 }
+
+function addLinkLanguage(linkId, languageId){
+  if(!isAdmin()) return;
+  const link = store.links.get(linkId);
+  const language = LINK_LANGUAGES.find(([id]) => id === languageId);
+  if(!link || !language) return;
+  const current = Array.isArray(link.languages) ? link.languages : [];
+  if(!current.some(lang => lang.id === languageId)){
+    patchRow('links', linkId, {
+      languages: [...current, { id: language[0], country: language[1], name: language[2] }]
+    });
+  }
+  openLinkLangMenuFor = null;
+  render();
+}
+
+function removeLinkLanguage(linkId, languageId){
+  const link = store.links.get(linkId);
+  if(!link) return;
+  const current = Array.isArray(link.languages) ? link.languages : [];
+  patchRow('links', linkId, { languages: current.filter(lang => lang.id !== languageId) });
+  render();
+}
+
+function updateMovieLinkUrl(linkId, value){
+  patchRow('links', linkId, { url: value }, TEXT_SAVE_DELAY);
+}
+
+function removeMovieLink(linkId){
+  deleteRow('links', linkId);
+  render();
+}
+
 function toggleMovieLinkMenu(movieId) {
   if (!isAdmin()) return;
 
@@ -2765,131 +2530,17 @@ function selectMovieLinkType(movieId, type) {
 
   addMovieLink(movieId, type);
 }
-function addMovieLink(movieId, type) {
+async function addMovieLink(movieId, type) {
   if (!isAdmin()) return;
+  if (!store.movies.has(movieId)) return;
 
-  const m = movies.find(m => m.id === movieId);
-  if (!m) return;
-
-  const container = document.getElementById(`movieLinks-${movieId}`);
-  if (!container) return;
-
-  // Garante que filmes antigos também tenham movieLinks
-  if (!Array.isArray(m.movieLinks)) {
-    m.movieLinks = [];
-  }
-
-  const linkId = `movie-link-${movieId}-${Date.now()}`;
-
-  // Cria o novo link dentro dos dados do filme
-  const newLink = {
-    id: linkId,
-    url: '',
-    idiomas: [],
-    type: type || 'LINK DOS ARQUIVOS'
-  };
-
-  m.movieLinks.push(newLink);
-
-  // Salva imediatamente
-  saveData();
-
-  // Cria o campo visual
-  const linkRow = document.createElement('div');
-  linkRow.className = 'path-audio-field';
-  linkRow.id = linkId;
-
- linkRow.innerHTML = `
-    <span class="audio-path-label">
-      ${type || 'LINK DOS ARQUIVOS'}
-    </span>
-
-    <!-- IDIOMAS DESTE LINK -->
-    <div
-      class="movie-link-languages"
-      style="margin-bottom:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"
-    >
-
-      ${isAdmin() ? `
-        <button
-          type="button"
-          onclick="addMovieLanguage('${linkId}')"
-          style="
-            background:#374151;
-            color:#ffffff;
-            border:none;
-            padding:4px 8px;
-            border-radius:6px;
-            font-size:12px;
-            font-weight:600;
-            cursor:pointer;
-          "
-        >
-          ＋ Idioma
-        </button>
-      ` : ''}
-
-    </div>
-
-    <span class="audio-path-label">
-      ${type || 'LINK DOS ARQUIVOS'}
-    </span>
-
-    <div class="input-shell">
-
-      <input
-        type="text"
-        placeholder="Caminho ou link do filme"
-        value=""
-        oninput="
-          const movie = movies.find(m => m.id === '${movieId}');
-          const link = movie?.movieLinks?.find(l => l.id === '${linkId}');
-          if (link) {
-            link.url = this.value;
-            saveData();
-          }
-        "
-      >
-
-      <button
-        class="copy-btn"
-        type="button"
-        onclick="navigator.clipboard.writeText(this.previousElementSibling.value)"
-      >
-        Copiar
-      </button>
-
-      <button
-        type="button"
-        onclick="
-          const movie = movies.find(m => m.id === '${movieId}');
-          if (movie && Array.isArray(movie.movieLinks)) {
-            movie.movieLinks = movie.movieLinks.filter(l => l.id !== '${linkId}');
-            saveData();
-          }
-          document.getElementById('${linkId}')?.remove();
-        "
-        style="
-          background:#dc2626;
-          color:#ffffff;
-          border:none;
-          width:32px;
-          height:32px;
-          border-radius:6px;
-          cursor:pointer;
-          font-size:18px;
-          font-weight:bold;
-          line-height:1;
-        "
-        title="Excluir link"
-      >
-        ×
-      </button>
-
-    </div>
-  `;
-
-  container.appendChild(linkRow);
+  const existing = [...store.links.values()].filter(link => link.movie_id === movieId);
+  await insertRow('links', {
+    movie_id: movieId,
+    type: MOVIE_LINK_TYPES.includes(type) ? type : 'LINK DOS ARQUIVOS',
+    position: nextPosition(existing)
+  });
+  render();
 }
 function overallProgressHtml(stagePct, overallPct){
   return `
@@ -3163,7 +2814,11 @@ function simpleEditorRowHtml(movieId, e){
 }
 
 document.addEventListener('click', () => {
-  if(openPickerFor){ openPickerFor = null; render(); }
+  if(openPickerFor || openLinkLangMenuFor){
+    openPickerFor = null;
+    openLinkLangMenuFor = null;
+    render();
+  }
 });
 function openNewUserModal(){
   if(!isAdmin()) return;
@@ -3260,17 +2915,26 @@ async function createNewUser(){
     alert(`Usuário ${name} criado com sucesso.`);
 
     closeNewUserModal();
+    await loadStationUsers();
+    render();
 
   }catch(e){
     console.error(e);
     alert('Erro ao conectar com o servidor.');
   }
 }
+
+/* ---------- LOGIN / SESSÃO ---------- */
+
 async function initSupabase(){
   if(!SUPABASE_URL.startsWith('http') || SUPABASE_ANON_KEY.startsWith('COLE_AQUI')) return;
   try{
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
     cloudEnabled = true;
+    // sessão encerrada em outra aba ou expirada
+    supabaseClient.auth.onAuthStateChange(event => {
+      if(event === 'SIGNED_OUT' && currentUser) setTimeout(() => resetSession(), 0);
+    });
     const { data:{ session } } = await supabaseClient.auth.getSession();
     if(session?.user) await onAuthenticated(session.user);
   }catch(e){ console.error('Supabase indisponível', e); }
@@ -3282,24 +2946,19 @@ async function onAuthenticated(user){
   await loadAccess(user);
   await loadStationUsers();
 
-  const loaded = await loadCloudData();
-
-  // Se houve erro ao carregar, não sobrescreve a nuvem.
-  if(loaded === null){
+  try{
+    await refetchAll();
+  }catch(e){
+    console.error('Login realizado, mas os dados não foram carregados.', e);
     setSaveStatus('error', 'Erro ao carregar dados');
-    console.error('Login realizado, mas os dados da nuvem não foram carregados.');
+    setAuthError('Não foi possível carregar os dados do servidor. Recarregue a página e tente de novo.');
     return;
   }
 
-  migrateEditorUserIds();
-
-  // Só cria o primeiro registro quando realmente não existe um.
-  if(loaded === false){
-    await saveCloudData();
-    cloudSavedVersion = cloudDataVersion;
-  }
-
-  setSaveStatus('saved', 'Alterações salvas');
+  loadUiState();
+  startRealtime();
+  lastWriteFailed = false;
+  updateSaveIndicator();
 
   document.getElementById('authOverlay').style.display = 'none';
   document.getElementById('userSession').textContent = user.email || 'Usuário autenticado';
@@ -3319,36 +2978,57 @@ async function signIn(){
   await onAuthenticated(data.user);
 }
 
-async function signUp(){
-  if(!cloudEnabled){ setAuthError('Configure o Supabase antes de criar contas.'); return; }
-  const email=document.getElementById('authEmail').value.trim();
-  const password=document.getElementById('authPassword').value;
-  const { data, error } = await supabaseClient.auth.signUp({ email, password });
-  if(error) return setAuthError(error.message);
-  if(data.user && data.session) await onAuthenticated(data.user);
-  else setAuthError('Conta criada. Verifique seu e-mail para confirmar o cadastro.');
-}
-
-async function signOut(){
-  if(cloudEnabled && supabaseClient) await supabaseClient.auth.signOut();
-  currentUser=null; currentAccess={ role:'editor', editorName:'' }; movies=[]; activeId=null;
+function resetSession(){
+  stopRealtime();
+  pendingPatches.forEach(p => clearTimeout(p.timer));
+  pendingPatches.clear();
+  Object.keys(store).forEach(kind => store[kind].clear());
+  rebuildState();
+  currentUser=null; currentAccess={ role:'editor', editorName:'' }; stationUsers=[]; activeId=null;
   document.getElementById('authOverlay').style.display='flex';
   document.getElementById('logoutBtn').style.display='none';
   document.getElementById('userSession').textContent='';
 setSaveStatus('', 'Aguardando sincronização');
 render();
 }
+
+async function signOut(){
+  // envia o que ainda estiver esperando antes de sair
+  await flushAllPatches();
+  await writeChain;
+  if(cloudEnabled && supabaseClient) await supabaseClient.auth.signOut();
+  resetSession();
+}
 function setAuthError(msg){ document.getElementById('authError').textContent=msg || ''; }
 
-loadData();
-initSupabase();
-
-// Mantém o painel sincronizado com mudanças de autenticação em outras abas.
-window.addEventListener('online', () => {
-  if(currentUser){
-    scheduleCloudSave();
+// Ao trocar de aba/minimizar: envia o que está pendente. Ao voltar depois
+// de um tempo: confere se algo mudou no servidor.
+document.addEventListener('visibilitychange', () => {
+  if(!currentUser) return;
+  if(document.hidden){
+    flushAllPatches();
+  }else if(Date.now() - lastFetchAt > 60000){
+    refetchAll().then(requestRender).catch(e => console.error('Falha ao recarregar dados', e));
   }
 });
+
+window.addEventListener('online', () => {
+  if(!currentUser) return;
+  flushAllPatches();
+  refetchAll().then(requestRender).catch(e => console.error('Falha ao recarregar dados', e));
+});
+
+window.addEventListener('beforeunload', event => {
+  if(currentUser && hasUnsavedChanges()){
+    flushAllPatches();
+    event.preventDefault();
+    event.returnValue = '';
+  }
+});
+
+loadTheme();
+render();
+initSupabase();
 
 </script>
 </body>

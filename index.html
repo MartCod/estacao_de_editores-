@@ -2332,7 +2332,7 @@ ${isAdmin() ? `
   id="movieLinks-${esc(m.id)}"
   class="movie-links-list"
 >
-  ${(Array.isArray(m.movieLinks) ? m.movieLinks.slice(1) : []).map(link => movieLinkHtml(m, link)).join('')}
+  ${(Array.isArray(m.movieLinks) ? m.movieLinks : []).map(link => movieLinkHtml(m, link)).join('')}
 </div>
         </div>
       </div>

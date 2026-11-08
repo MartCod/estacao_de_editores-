@@ -1213,7 +1213,7 @@ function setSaveStatus(state, message){
   if(!status) return;
 
   status.classList.remove('saved', 'saving', 'error');
-  status.classList.add(state);
+  if(state) status.classList.add(state);
   status.textContent = '● ' + message;
 }
 

@@ -5,6 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Estação de Editores</title>
   
+/* outros estilos do seu site */
+
+/* Indicador de salvamento */
+.save-status{
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 5px 8px;
+  border: 1px solid #263244;
+  border-radius: 5px;
+  transition: opacity .2s ease, border-color .2s ease;
+}
+
+.save-status.saved{
+  color: #38d996;
+  border-color: rgba(56,217,150,.35);
+}
+
+.save-status.saving{
+  color: #f0c75e;
+  border-color: rgba(240,199,94,.35);
+}
+
+.save-status.error{
+  color: #ff5c6c;
+  border-color: rgba(255,92,108,.35);
+}
+
+</style>
+
 <style>
   :root{
     --bg: #0e1013;
@@ -820,8 +853,14 @@
         <div class="titles">
           <h1>Estação de Editores</h1>
           <p>Vocal · Efeitos · Música — 7 editores por equipe · funciona 100% offline</p>
-        </div>
-        <div class="io-actions"><span class="user-session" id="userSession"></span><button class="logout-btn" id="logoutBtn" style="display:none" onclick="signOut()">Sair</button>
+        </div><div class="io-actions">
+  <span class="user-session" id="userSession"></span>
+
+<span class="save-status" id="saveStatus">
+  ● Aguardando sincronização
+</span>
+
+  <button class="logout-btn" id="logoutBtn" style="display:none" onclick="signOut()">Sair</button>
           <div class="theme-toggle">
             <button class="theme-btn" id="themeBtnDark" onclick="setTheme('dark')">Dark</button>
             <button class="theme-btn" id="themeBtnLight" onclick="setTheme('light')">White</button>
@@ -1252,6 +1291,15 @@ function saveData(){
 
   scheduleCloudSave();
 }
+  function setSaveStatus(state, message){
+  const status = document.getElementById('saveStatus');
+
+  if(!status) return;
+
+  status.classList.remove('saved', 'saving', 'error');
+  status.classList.add(state);
+  status.textContent = '● ' + message;
+}
 function scheduleCloudSave(){
   if(!cloudEnabled || !supabaseClient || !currentUser) return;
 
@@ -1260,36 +1308,44 @@ function scheduleCloudSave(){
   cloudSaveTimer = setTimeout(async () => {
     cloudSaveTimer = null;
 
-    // Se já existe um salvamento em andamento,
-    // a versão mais recente será salva quando ele terminar.
     if(cloudSaveInProgress){
       return;
     }
 
     cloudSaveInProgress = true;
 
+    setSaveStatus('saving', 'Salvando alterações...');
+
+    let saveFailed = false;
+
     try{
-      // Continua salvando até que a versão mais recente
-      // dos dados seja confirmada.
       while(cloudSavedVersion < cloudDataVersion){
         const versionToSave = cloudDataVersion;
 
         await saveCloudData();
 
-        // Marca a versão enviada como salva.
         cloudSavedVersion = versionToSave;
       }
+
+      setSaveStatus('saved', 'Alterações salvas');
+
     }catch(e){
       console.error('Erro na fila de salvamento', e);
+
+      saveFailed = true;
+
+      setSaveStatus('error', 'Erro ao salvar');
+
     }finally{
       cloudSaveInProgress = false;
 
-      // Se uma alteração aconteceu exatamente no final,
-      // garante que a fila seja acionada novamente.
-      if(cloudSavedVersion < cloudDataVersion){
+      // Só agenda novamente se houve uma alteração
+      // enquanto o salvamento estava em andamento.
+      if(!saveFailed && cloudSavedVersion < cloudDataVersion){
         scheduleCloudSave();
       }
     }
+
   }, 350);
 }
 
@@ -1332,7 +1388,10 @@ async function saveCloudData(){
 async function loadCloudData(){
   if(!cloudEnabled || !supabaseClient || !currentUser) return false;
   const { data, error } = await supabaseClient.from(CLOUD_TABLE).select('payload').eq('id', CLOUD_ROW_ID).maybeSingle();
-  if(error){ console.error('Falha ao carregar dados da nuvem', error); return false; }
+ if(error){
+  console.error('Falha ao carregar dados da nuvem', error);
+  return null;
+}
   if(data && data.payload){
     const payload = data.payload;
     movies = Array.isArray(payload.movies) ? payload.movies : [];
@@ -3217,16 +3276,36 @@ async function initSupabase(){
 
 async function onAuthenticated(user){
   currentUser = user;
-await loadAccess(user);
-await loadStationUsers();
-const loaded = await loadCloudData();
 
-migrateEditorUserIds();
-  if(!loaded) saveCloudData();
+  await loadAccess(user);
+  await loadStationUsers();
+
+  const loaded = await loadCloudData();
+
+  // Se houve erro ao carregar, não sobrescreve a nuvem.
+  if(loaded === null){
+    setSaveStatus('error', 'Erro ao carregar dados');
+    console.error('Login realizado, mas os dados da nuvem não foram carregados.');
+    return;
+  }
+
+  migrateEditorUserIds();
+
+  // Só cria o primeiro registro quando realmente não existe um.
+  if(loaded === false){
+    await saveCloudData();
+    cloudSavedVersion = cloudDataVersion;
+  }
+
+  setSaveStatus('saved', 'Alterações salvas');
+
   document.getElementById('authOverlay').style.display = 'none';
   document.getElementById('userSession').textContent = user.email || 'Usuário autenticado';
   document.getElementById('logoutBtn').style.display = 'inline-block';
-  applyDeptTheme(); render(); loadTheme();
+
+  applyDeptTheme();
+  render();
+  loadTheme();
 }
 
 async function signIn(){
@@ -3254,7 +3333,8 @@ async function signOut(){
   document.getElementById('authOverlay').style.display='flex';
   document.getElementById('logoutBtn').style.display='none';
   document.getElementById('userSession').textContent='';
-  render();
+setSaveStatus('', 'Aguardando sincronização');
+render();
 }
 function setAuthError(msg){ document.getElementById('authError').textContent=msg || ''; }
 
@@ -3262,7 +3342,11 @@ loadData();
 initSupabase();
 
 // Mantém o painel sincronizado com mudanças de autenticação em outras abas.
-window.addEventListener('online', () => { if(currentUser) loadCloudData().then(ok => { if(ok) render(); }); });
+window.addEventListener('online', () => {
+  if(currentUser){
+    scheduleCloudSave();
+  }
+});
 
 </script>
 </body>

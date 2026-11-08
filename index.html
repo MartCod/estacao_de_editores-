@@ -1984,10 +1984,10 @@ function renderMovieTabs(){
    html += `
         <div
           class="queue-movie-card"
-          draggable="true"
+          ${canManageWork() ? `draggable="true"
           ondragstart="startMovieDrag(event, ${jsArg(m.id)})"
           ondragover="allowMovieDrop(event)"
-          ondrop="dropMovie(event, ${jsArg(m.id)})"
+          ondrop="dropMovie(event, ${jsArg(m.id)})"` : ''}
           onclick="selectMovie(${jsArg(m.id)})"
         >
     <div class="queue-number">
@@ -2131,6 +2131,7 @@ function allowMovieDrop(event){
 
 function dropMovie(event, targetId){
   event.preventDefault();
+  if(!canManageWork()) return;
 
   const draggedId = event.dataTransfer.getData('text/plain');
 

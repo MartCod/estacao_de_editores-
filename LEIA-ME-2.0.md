@@ -34,7 +34,7 @@ outros a cada 30 s.
   agora aparece (antes ficava escondido).
 - Abra o painel em dois navegadores. Uma mudança feita em um aparece no outro em segundos.
 - Como editor: dá para mudar datas e status das **próprias** tarefas (Vocal, Efeitos e Música), e nada além disso.
-- Como chefe: dá para mudar urgência, revisor, status e editor responsável, mas não datas.
+- Como chefe: dá para mudar urgência, revisor, status e editor responsável, e adicionar ou remover idiomas, mas não datas.
 - O indicador mostra "Alterações salvas". Se mostrar "Erro ao salvar", abra o console (F12) e veja a mensagem.
 - Em Efeitos/Música, editores que eram só um nome digitado aparecem como "Nome (sem usuário)" até
   o chefe escolher o usuário na lista. Enquanto isso, o editor não consegue mexer na própria tarefa.

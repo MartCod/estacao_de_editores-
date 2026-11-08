@@ -1044,6 +1044,7 @@ function isAdmin(){ return currentAccess.role === 'admin'; }
 function isChief(){ return currentAccess.role === 'chief'; }
 function canManageWork(){ return isAdmin() || isChief(); }
 function canDelete(){ return isAdmin(); }
+function canManageLanguages(){ return isAdmin() || isChief(); }
 function canCompleteMovie(){ return isAdmin() || isChief(); }
 function canImport(){ return isAdmin(); }
 function canExport(){ return isAdmin() || isChief(); }
@@ -1773,13 +1774,13 @@ function todayISO(){
 }
 
 function removeLangRow(movieId, editorId, rowId){
-  if(!canDelete()) return;
+  if(!canManageLanguages()) return;
   deleteRow('rows', rowId);
   render();
 }
 
 function toggleLangPicker(editorId){
-  if(!canManageWork()) return;
+  if(!canManageLanguages()) return;
   openPickerFor = (openPickerFor === editorId) ? null : editorId;
   pickerSearch = '';
   render();
@@ -1792,7 +1793,7 @@ function toggleLangPicker(editorId){
 }
 
 async function addLanguageRow(movieId, editorId, lang){
-  if(!canManageWork()) return;
+  if(!canManageLanguages()) return;
   openPickerFor = null;
   const existing = [...store.rows.values()].filter(r => r.editor_id === editorId);
   if(existing.some(r => r.idioma === lang)){ render(); return; }
@@ -2730,7 +2731,7 @@ function vocalEditorGroupHtml(movieId, e){
         ${editorName}
         <span class="lang-badge">${n} idioma${n===1?'':'s'}</span>
         <div class="spacer"></div>
-        ${canManageWork() ? `<button class="add-lang-inline-btn" onclick="event.stopPropagation(); toggleLangPicker(${jsArg(e.id)})">+ Adicionar idioma</button>` : ''}
+        ${canManageLanguages() ? `<button class="add-lang-inline-btn" onclick="event.stopPropagation(); toggleLangPicker(${jsArg(e.id)})">+ Adicionar idioma</button>` : ''}
         ${canDelete() ? `<button class="rm-editor-btn" onclick="removeEditorRow(${jsArg(movieId)},${jsArg(e.id)})">Remover editor</button>` : ''}
         ${popover}
       </div>
@@ -2788,7 +2789,7 @@ function vocalLangRowHtml(movieId, editorId, r, idx){
       <div class="cell">
         ${statusInput}
       </div>
-      ${canDelete() ? `<button class="rm-row-btn" onclick="removeLangRow(${jsArg(movieId)},${jsArg(editorId)},${jsArg(r.id)})" title="Remover idioma">✕</button>` : '<span></span>'}
+      ${canManageLanguages() ? `<button class="rm-row-btn" onclick="removeLangRow(${jsArg(movieId)},${jsArg(editorId)},${jsArg(r.id)})" title="Remover idioma">✕</button>` : '<span></span>'}
     </div>
   `;
 }

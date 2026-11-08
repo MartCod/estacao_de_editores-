@@ -64,7 +64,7 @@ select r from (values
  (pg_temp.t('chefe NÃO muda departamento do editor', :'CHF', $$update station_editors set dept='musica' where id='s1'$$, false)),
  (pg_temp.t('chefe cria editor', :'CHF', $$insert into station_editors(movie_id,dept,position,nome) values ('m1','efeitos',9,'Novo')$$, true)),
  (pg_temp.t('chefe cria linha de idioma', :'CHF', $$insert into station_vocal_rows(editor_id,idioma) values ('e1','Grego 5.1')$$, true)),
- (pg_temp.t('chefe NÃO apaga linha', :'CHF', $$delete from station_vocal_rows where id='r1'$$, false)),
+ (pg_temp.t('chefe remove idioma', :'CHF', $$delete from station_vocal_rows where id='r1'$$, true)),
  (pg_temp.t('chefe NÃO apaga editor', :'CHF', $$delete from station_editors where id='e1'$$, false)),
  (pg_temp.t('chefe NÃO muda nome/pôster do filme', :'CHF', $$update station_movies set nome='x' where id='m1'$$, false)),
  (pg_temp.t('chefe cria filme', :'CHF', 'select station_create_movie()', true)),

@@ -295,14 +295,15 @@ create policy station_editors_update on public.station_editors for update to aut
 create policy station_editors_delete on public.station_editors for delete to authenticated
   using (public.station_is_admin());
 
--- Linhas de idioma (Vocal): mesmo esquema dos editores.
+-- Linhas de idioma (Vocal): chefe/admin adicionam e removem idiomas;
+-- alteração: chefe/admin ou o editor dono (campos conferidos pelo gatilho).
 create policy station_vocal_rows_insert on public.station_vocal_rows for insert to authenticated
   with check (public.station_is_manager());
 create policy station_vocal_rows_update on public.station_vocal_rows for update to authenticated
   using (public.station_is_manager() or public.station_editor_owner(editor_id) = auth.uid())
   with check (true);
 create policy station_vocal_rows_delete on public.station_vocal_rows for delete to authenticated
-  using (public.station_is_admin());
+  using (public.station_is_manager());
 
 -- Filme em produção: chefe/admin.
 create policy station_settings_update on public.station_settings for update to authenticated

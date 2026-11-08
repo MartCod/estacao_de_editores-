@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { openBrowser, sqlAdmin, closeAll, USERS, sleep } from './harness.mjs';
 let pass = 0, fail = 0;
 const ok = (c, d, x = '') => { c ? pass++ : fail++; console.log(c ? 'PASS |' : '**FAIL** |', d, !c && x ? '| ' + x : ''); };
-const only = (process.env.ITENS || '6,7,8,9,10,11').split(',');
+const only = (process.env.ITENS || '6,7,8,9,10,idiomas,11').split(',');
 execFileSync(new URL('./reset_db.sh', import.meta.url).pathname);
 const admin = await openBrowser('admin', { user: USERS.admin });
 const chefe = await openBrowser('chefe', { user: USERS.chefe });
@@ -43,6 +43,13 @@ if(only.includes('9')){
   ana.log.length = 0;
   ana.eval("dropMovie({ preventDefault(){}, dataTransfer:{ getData:()=>'m2' } }, 'm1')"); await ana.idle();
   ok(!ana.log.some(l => l.includes('reorder')), 'item 9: soltar como editor não tenta gravar');
+}
+if(only.includes('idiomas')){
+  chefe.eval("selectMovie('m1'); switchDept('vocal')");
+  ok(chefe.html().includes('removeLangRow') && chefe.html().includes('toggleLangPicker'), 'chefe vê adicionar e remover idioma');
+  chefe.eval("removeLangRow('m1','e1','r2')"); await chefe.idle();
+  ok(await sqlAdmin("select count(*) from station_vocal_rows where id='r2'") === '0', 'chefe remove idioma (gravado no servidor)');
+  ok(!ana.html().includes('removeLangRow') && !ana.html().includes('toggleLangPicker'), 'editor continua sem adicionar/remover idioma');
 }
 if(only.includes('11')){
   let erro = null;

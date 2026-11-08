@@ -1856,8 +1856,46 @@ function copyText(value, btn){
   }
 }
 
+// Escapa texto para HTML (conteúdo e atributos). Aceita qualquer tipo.
 function esc(s){
-  return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  if(s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+// Valor usado como argumento dentro de onclick="..."/onchange="...":
+// vira uma string JS válida (JSON) e depois é escapado para o atributo.
+function jsArg(v){
+  return esc(JSON.stringify(String(v === null || v === undefined ? '' : v)));
+}
+
+// Só aceita valores conhecidos (usado em classes CSS e data-*).
+function oneOf(value, allowed, fallback){
+  return allowed.includes(value) ? value : fallback;
+}
+const URGENCIAS = ['baixa', 'media', 'alta'];
+const STATUS = ['pendente', 'fazendo', 'concluido'];
+const STATUS_REVISAO = ['pendente', 'andamento', 'revisado', 'erro'];
+
+// Pôster só é exibido se for de fato uma imagem JPEG embutida.
+function safePosterSrc(value){
+  return /^data:image\/jpe?g;base64,[A-Za-z0-9+/=]+$/.test(value || '') ? value : '';
+}
+
+function flagImg(country, extraStyle = ''){
+  const code = String(country || '');
+  if(!/^[A-Za-z]{2}$/.test(code)) return '';
+  return `<img
+              src="https://flagcdn.com/24x18/${code.toLowerCase()}.png"
+              alt=""
+              width="24"
+              height="18"
+              style="width:24px;height:18px;object-fit:cover;border-radius:2px;vertical-align:middle;${extraStyle}"
+            >`;
 }
 
 function renderOnly(){
@@ -1917,7 +1955,7 @@ function renderMovieTabs(){
     html += `
      <div
   class="current-movie-card"
-  onclick="selectMovie('${productionMovie.id}')"
+  onclick="selectMovie(${jsArg(productionMovie.id)})"
 >
         <div class="current-movie-label">
           🟢 EDITANDO AGORA
@@ -1947,10 +1985,10 @@ function renderMovieTabs(){
         <div
           class="queue-movie-card"
           draggable="true"
-          ondragstart="startMovieDrag(event, '${m.id}')"
+          ondragstart="startMovieDrag(event, ${jsArg(m.id)})"
           ondragover="allowMovieDrop(event)"
-          ondrop="dropMovie(event, '${m.id}')"
-          onclick="selectMovie('${m.id}')"
+          ondrop="dropMovie(event, ${jsArg(m.id)})"
+          onclick="selectMovie(${jsArg(m.id)})"
         >
     <div class="queue-number">
       ${number}
@@ -1969,7 +2007,7 @@ function renderMovieTabs(){
         <button
           type="button"
           class="set-production-btn"
-          onclick="event.stopPropagation(); setProductionMovie('${m.id}')"
+          onclick="event.stopPropagation(); setProductionMovie(${jsArg(m.id)})"
         >
           ▶ COLOCAR EM PRODUÇÃO
         </button>
@@ -2049,7 +2087,7 @@ function renderDeptTabs(m){
   wrap.innerHTML = DEPTS.map(d => {
     const st = deptStatusForMovie(m, d.key);
     return `
-      <div class="dept-tab ${d.key===activeDept?'active':''}" data-dept="${d.key}" onclick="switchDept('${d.key}')">
+      <div class="dept-tab ${d.key===activeDept?'active':''}" data-dept="${d.key}" onclick="switchDept(${jsArg(d.key)})">
         <div class="dept-tab-left">
           <span class="dept-name">${d.label}</span>
           <span class="dept-status-label">${st.label}</span>
@@ -2172,7 +2210,7 @@ if(!m){
           : simpleEditorsTableHtml(m.id, m.depts[activeDept].editors)}
       </div>
       <div class="panel-footer">
-        ${canManageWork() ? `<button class="add-editor-btn" onclick="addEditorRow('${m.id}')">+ Adicionar editor</button>` : '<span></span>'}
+        ${canManageWork() ? `<button class="add-editor-btn" onclick="addEditorRow(${jsArg(m.id)})">+ Adicionar editor</button>` : '<span></span>'}
         <span class="hint">Clique nos campos para editar — salvamento automático e sincronização em tempo real</span>
       </div>
     </div>
@@ -2180,17 +2218,18 @@ if(!m){
 }
 
 function movieHeaderHtml(m){
-  const poster = m.poster ? `<img src="${m.poster}" alt="Pôster do filme">` : `<span class="poster-plus">+</span>`;
+  const posterSrc = safePosterSrc(m.poster);
+  const poster = posterSrc ? `<img src="${esc(posterSrc)}" alt="Pôster do filme">` : `<span class="poster-plus">+</span>`;
   const posterHtml = isAdmin()
-    ? `<div class="poster-upload" onclick="triggerPosterUpload('${m.id}')" title="${m.poster ? 'Clique para trocar o pôster' : 'Adicionar pôster (JPEG)'}">
+    ? `<div class="poster-upload" onclick="triggerPosterUpload(${jsArg(m.id)})" title="${m.poster ? 'Clique para trocar o pôster' : 'Adicionar pôster (JPEG)'}">
         ${poster}
-        ${m.poster ? `<button class="poster-remove" onclick="removePoster('${m.id}', event)" title="Remover pôster">✕</button>` : ''}
-        <input type="file" id="posterInput-${m.id}" accept="image/jpeg" style="display:none" onchange="handlePosterUpload('${m.id}', this.files[0])">
+        ${m.poster ? `<button class="poster-remove" onclick="removePoster(${jsArg(m.id)}, event)" title="Remover pôster">✕</button>` : ''}
+        <input type="file" id="posterInput-${esc(m.id)}" accept="image/jpeg" style="display:none" onchange="handlePosterUpload(${jsArg(m.id)}, this.files[0])">
       </div>`
     : `<div class="poster-upload" title="Somente o administrador pode alterar o pôster">${poster}</div>`;
   const titleHtml = isAdmin()
     ? `<input type="text" placeholder="Ex: A Última Sessão" value="${esc(m.nome)}"
-        oninput="updateMovieField('${m.id}','nome', this.value)">`
+        oninput="updateMovieField(${jsArg(m.id)},'nome', this.value)">`
     : `<div class="readonly-value">${esc(m.nome) || 'Sem título'}</div>`;
   return `
     <div class="movie-header">
@@ -2202,8 +2241,8 @@ function movieHeaderHtml(m){
         </div>
       </div>
       <div style="display:flex; flex-direction:column; gap:8px;">
-        ${canDelete() ? `<button class="del-movie-btn" onclick="deleteMovie('${m.id}')">Remover filme</button>` : ''}
-        ${canCompleteMovie() ? `<button class="complete-movie-btn" onclick="completeMovie('${m.id}')">Filme concluído</button>` : ''}
+        ${canDelete() ? `<button class="del-movie-btn" onclick="deleteMovie(${jsArg(m.id)})">Remover filme</button>` : ''}
+        ${canCompleteMovie() ? `<button class="complete-movie-btn" onclick="completeMovie(${jsArg(m.id)})">Filme concluído</button>` : ''}
       </div>
     </div>
   `;
@@ -2227,16 +2266,16 @@ function pathRowHtml(m){
           <div class="input-shell">
             <input
               type="text"
-              id="driveInput-${m.id}"
+              id="driveInput-${esc(m.id)}"
               placeholder="Caminho ou link do Drive"
               value="${esc(m.drive || '')}"
-              oninput="updateMovieField('${m.id}', 'drive', this.value)"
+              oninput="updateMovieField(${jsArg(m.id)}, 'drive', this.value)"
             >
 
             <button
               class="copy-btn"
-              id="copyBtnDrive-${m.id}"
-              onclick="copyPath('${m.id}', 'drive', 'copyBtnDrive-${m.id}')"
+              id="copyBtnDrive-${esc(m.id)}"
+              onclick="copyPath(${jsArg(m.id)}, 'drive', ${jsArg('copyBtnDrive-' + m.id)})"
             >
               Copiar
             </button>
@@ -2252,7 +2291,7 @@ ${isAdmin() ? `
   <button
     type="button"
     class="add-movie-link-btn"
-    onclick="toggleMovieLinkMenu('${m.id}')"
+    onclick="toggleMovieLinkMenu(${jsArg(m.id)})"
     style="background:#22c55e; color:#ffffff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600;"
   >
     <span class="add-movie-link-icon">＋</span>
@@ -2261,7 +2300,7 @@ ${isAdmin() ? `
 ` : ''}
 
   <div
-    id="movieLinkMenu-${m.id}"
+    id="movieLinkMenu-${esc(m.id)}"
     style="
       display:none;
       position:absolute;
@@ -2279,10 +2318,10 @@ ${isAdmin() ? `
     ${MOVIE_LINK_TYPES.map(type => `
     <button
       type="button"
-      onclick="selectMovieLinkType('${m.id}', '${type}')"
+      onclick="selectMovieLinkType(${jsArg(m.id)}, ${jsArg(type)})"
       style="display:block; width:100%; background:none; border:none; color:#ffffff; padding:8px 10px; text-align:left; border-radius:6px; cursor:pointer;"
     >
-      ${type}
+      ${esc(type)}
     </button>
     `).join('')}
   </div>
@@ -2290,7 +2329,7 @@ ${isAdmin() ? `
 </div>
 
 <div
-  id="movieLinks-${m.id}"
+  id="movieLinks-${esc(m.id)}"
   class="movie-links-list"
 >
   ${(Array.isArray(m.movieLinks) ? m.movieLinks.slice(1) : []).map(link => movieLinkHtml(m, link)).join('')}
@@ -2305,7 +2344,7 @@ function movieLinkHtml(m, link){
   return `
     <div
       class="path-audio-field"
-      id="${link.id}"
+      id="${esc(link.id)}"
     >
 
       <!-- IDIOMAS DESTE LINK -->
@@ -2330,26 +2369,14 @@ function movieLinkHtml(m, link){
               font-weight:600;
             "
           >
-            <img
-              src="https://flagcdn.com/24x18/${String(lang.country || '').toLowerCase()}.png"
-              alt=""
-              width="24"
-              height="18"
-              style="
-                width:24px;
-                height:18px;
-                object-fit:cover;
-                border-radius:2px;
-                vertical-align:middle;
-              "
-            >
+            ${flagImg(lang.country)}
 
             <span>${esc(lang.name || '')}</span>
 
             <button
               type="button"
               class="remove-language-btn"
-              onclick="event.preventDefault(); event.stopPropagation(); removeLinkLanguage('${link.id}', '${lang.id}')"
+              onclick="event.preventDefault(); event.stopPropagation(); removeLinkLanguage(${jsArg(link.id)}, ${jsArg(lang.id)})"
               style="
                 background:none;
                 border:none;
@@ -2369,7 +2396,7 @@ function movieLinkHtml(m, link){
         ${isAdmin() ? `
           <button
             type="button"
-            onclick="event.stopPropagation(); toggleLinkLanguageMenu('${link.id}')"
+            onclick="event.stopPropagation(); toggleLinkLanguageMenu(${jsArg(link.id)})"
             style="
               background:#374151;
               color:#ffffff;
@@ -2399,7 +2426,7 @@ function movieLinkHtml(m, link){
           type="text"
           placeholder="Caminho ou link do filme"
           value="${esc(link.url || '')}"
-          oninput="updateMovieLinkUrl('${link.id}', this.value)"
+          oninput="updateMovieLinkUrl(${jsArg(link.id)}, this.value)"
         >
 
         <button
@@ -2412,7 +2439,7 @@ function movieLinkHtml(m, link){
 
         <button
           type="button"
-          onclick="removeMovieLink('${link.id}')"
+          onclick="removeMovieLink(${jsArg(link.id)})"
           style="
             background:#dc2626;
             color:#ffffff;
@@ -2447,17 +2474,11 @@ function linkLanguageMenuHtml(link){
       ${LINK_LANGUAGES.filter(([id]) => !taken.has(id)).map(([id, country, name]) => `
         <div
           class="movie-language-option"
-          onclick="addLinkLanguage('${link.id}', '${id}')"
+          onclick="addLinkLanguage(${jsArg(link.id)}, ${jsArg(id)})"
           style="background:transparent; color:#ffffff; padding:8px 10px; border-radius:6px; cursor:pointer; text-align:left; font-size:12px; font-weight:600; width:100%; box-sizing:border-box;"
         >
-          <img
-            src="https://flagcdn.com/24x18/${country.toLowerCase()}.png"
-            alt=""
-            width="24"
-            height="18"
-            style="width:24px;height:18px;object-fit:cover;border-radius:2px;vertical-align:middle;margin-right:6px;"
-          >
-          <span>${name}</span>
+          ${flagImg(country, 'margin-right:6px;')}
+          <span>${esc(name)}</span>
         </div>
       `).join('')}
     </div>
@@ -2646,10 +2667,10 @@ function vocalEditorGroupHtml(movieId, e){
   const n = e.idiomas.length;
   const editorName = canManageWork()
   ? `<select class="editor-name-input"
-      onchange="assignEditorUser('${movieId}','${e.id}', this.value)">
+      onchange="assignEditorUser(${jsArg(movieId)},${jsArg(e.id)}, this.value)">
       <option value="">Selecionar editor</option>
       ${stationUsers.map(user => `
-        <option value="${user.user_id}" ${e.user_id === user.user_id ? 'selected' : ''}>
+        <option value="${esc(user.user_id)}" ${e.user_id === user.user_id ? 'selected' : ''}>
           ${esc(user.editor_name || 'Sem nome')}
         </option>
       `).join('')}
@@ -2663,10 +2684,10 @@ function vocalEditorGroupHtml(movieId, e){
     const available = LANGUAGES.filter(l => !taken.includes(l) && l.toLowerCase().includes(search));
     popover = `
       <div class="lang-popover" onclick="event.stopPropagation()">
-        <input class="search" id="langSearch-${e.id}" type="text" placeholder="Buscar idioma..."
+        <input class="search" id="langSearch-${esc(e.id)}" type="text" placeholder="Buscar idioma..."
           oninput="onPickerSearch(this.value)">
         ${available.length ? available.map(l => `
-          <div class="lang-option" onclick="addLanguageRow('${movieId}','${e.id}','${l.replace(/'/g,"\\'")}')">${esc(l)}</div>
+          <div class="lang-option" onclick="addLanguageRow(${jsArg(movieId)},${jsArg(e.id)},${jsArg(l)})">${esc(l)}</div>
         `).join('') : `<div class="lang-empty">Nenhum idioma encontrado</div>`}
       </div>`;
   }
@@ -2689,8 +2710,8 @@ function vocalEditorGroupHtml(movieId, e){
         ${editorName}
         <span class="lang-badge">${n} idioma${n===1?'':'s'}</span>
         <div class="spacer"></div>
-        ${canManageWork() ? `<button class="add-lang-inline-btn" onclick="event.stopPropagation(); toggleLangPicker('${e.id}')">+ Adicionar idioma</button>` : ''}
-        ${canDelete() ? `<button class="rm-editor-btn" onclick="removeEditorRow('${movieId}','${e.id}')">Remover editor</button>` : ''}
+        ${canManageWork() ? `<button class="add-lang-inline-btn" onclick="event.stopPropagation(); toggleLangPicker(${jsArg(e.id)})">+ Adicionar idioma</button>` : ''}
+        ${canDelete() ? `<button class="rm-editor-btn" onclick="removeEditorRow(${jsArg(movieId)},${jsArg(e.id)})">Remover editor</button>` : ''}
         ${popover}
       </div>
       ${rows}
@@ -2702,10 +2723,10 @@ function vocalLangRowHtml(movieId, editorId, r, idx){
   const m = movies.find(movie => movie.id === movieId);
   const editor = m.depts.vocal.editors.find(item => item.id === editorId);
   const dateInput = (field, value) => canEditTask(editor, field)
-    ? `<input type="date" value="${esc(value)}" onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','${field}', this.value)">`
+    ? `<input type="date" value="${esc(value)}" onchange="updateLangRowField(${jsArg(movieId)},${jsArg(editorId)},${jsArg(r.id)},${jsArg(field)}, this.value)">`
     : readOnlyValue(value);
   const statusInput = canEditTask(editor, 'status')
-    ? `<select class="status-select" data-v="${r.status}" onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','status', this.value)">
+    ? `<select class="status-select" data-v="${oneOf(r.status, STATUS, 'pendente')}" onchange="updateLangRowField(${jsArg(movieId)},${jsArg(editorId)},${jsArg(r.id)},'status', this.value)">
         <option value="pendente" ${r.status==='pendente'?'selected':''}>Pendente</option>
         <option value="fazendo" ${r.status==='fazendo'?'selected':''}>Fazendo</option>
         <option value="concluido" ${r.status==='concluido'?'selected':''}>Concluído</option>
@@ -2714,7 +2735,7 @@ function vocalLangRowHtml(movieId, editorId, r, idx){
   const managerFields = canManageWork();
   return `
     <div class="grid-row grid-body-row">
-      <div class="urg-bar ${r.urgencia}"></div>
+      <div class="urg-bar ${oneOf(r.urgencia, URGENCIAS, 'media')}"></div>
       <div class="lang-name">${esc(r.idioma)}</div>
       <div class="lang-index">${idx+1}</div>
       <div class="cell">
@@ -2724,8 +2745,8 @@ function vocalLangRowHtml(movieId, editorId, r, idx){
         ${dateInput('entrega', r.entrega)}
       </div>
       <div class="cell">
-        ${managerFields ? `<select class="urg-select" data-v="${r.urgencia}"
-          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','urgencia', this.value)">
+        ${managerFields ? `<select class="urg-select" data-v="${oneOf(r.urgencia, URGENCIAS, 'media')}"
+          onchange="updateLangRowField(${jsArg(movieId)},${jsArg(editorId)},${jsArg(r.id)},'urgencia', this.value)">
           <option value="baixa" ${r.urgencia==='baixa'?'selected':''}>Baixa</option>
           <option value="media" ${r.urgencia==='media'?'selected':''}>Média</option>
           <option value="alta" ${r.urgencia==='alta'?'selected':''}>Alta</option>
@@ -2733,11 +2754,11 @@ function vocalLangRowHtml(movieId, editorId, r, idx){
       </div>
       <div class="cell">
         ${managerFields ? `<input type="text" class="revisor-input" placeholder="Nome do revisor" value="${esc(r.revisor)}"
-          oninput="updateLangRowField('${movieId}','${editorId}','${r.id}','revisor', this.value)">` : readOnlyValue(r.revisor)}
+          oninput="updateLangRowField(${jsArg(movieId)},${jsArg(editorId)},${jsArg(r.id)},'revisor', this.value)">` : readOnlyValue(r.revisor)}
       </div>
       <div class="cell">
-        ${managerFields ? `<select class="revstatus-select" data-v="${r.statusRevisao}"
-          onchange="updateLangRowField('${movieId}','${editorId}','${r.id}','statusRevisao', this.value)">
+        ${managerFields ? `<select class="revstatus-select" data-v="${oneOf(r.statusRevisao, STATUS_REVISAO, 'pendente')}"
+          onchange="updateLangRowField(${jsArg(movieId)},${jsArg(editorId)},${jsArg(r.id)},'statusRevisao', this.value)">
           <option value="pendente" ${r.statusRevisao==='pendente'?'selected':''}>Pendente</option>
           <option value="andamento" ${r.statusRevisao==='andamento'?'selected':''}>Em andamento</option>
           <option value="revisado" ${r.statusRevisao==='revisado'?'selected':''}>Revisado</option>
@@ -2747,7 +2768,7 @@ function vocalLangRowHtml(movieId, editorId, r, idx){
       <div class="cell">
         ${statusInput}
       </div>
-      ${canDelete() ? `<button class="rm-row-btn" onclick="removeLangRow('${movieId}','${editorId}','${r.id}')" title="Remover idioma">✕</button>` : '<span></span>'}
+      ${canDelete() ? `<button class="rm-row-btn" onclick="removeLangRow(${jsArg(movieId)},${jsArg(editorId)},${jsArg(r.id)})" title="Remover idioma">✕</button>` : '<span></span>'}
     </div>
   `;
 }
@@ -2773,13 +2794,13 @@ function simpleEditorsTableHtml(movieId, editors){
 function simpleEditorRowHtml(movieId, e){
   const editorName = canManageWork()
     ? `<input type="text" class="editor-name-input inline" placeholder="Nome do editor" value="${esc(e.nome)}"
-        oninput="updateSimpleEditorField('${movieId}','${e.id}','nome', this.value)">`
+        oninput="updateSimpleEditorField(${jsArg(movieId)},${jsArg(e.id)},'nome', this.value)">`
     : readOnlyValue(e.nome);
   const dateInput = (field, value) => canEditTask(e, field)
-    ? `<input type="date" value="${esc(value)}" onchange="updateSimpleEditorField('${movieId}','${e.id}','${field}', this.value)">`
+    ? `<input type="date" value="${esc(value)}" onchange="updateSimpleEditorField(${jsArg(movieId)},${jsArg(e.id)},${jsArg(field)}, this.value)">`
     : readOnlyValue(value);
   const statusInput = canEditTask(e.nome, 'status')
-    ? `<select class="status-select" data-v="${e.status}" onchange="updateSimpleEditorField('${movieId}','${e.id}','status', this.value)">
+    ? `<select class="status-select" data-v="${oneOf(e.status, STATUS, 'pendente')}" onchange="updateSimpleEditorField(${jsArg(movieId)},${jsArg(e.id)},'status', this.value)">
         <option value="pendente" ${e.status==='pendente'?'selected':''}>Pendente</option>
         <option value="fazendo" ${e.status==='fazendo'?'selected':''}>Fazendo</option>
         <option value="concluido" ${e.status==='concluido'?'selected':''}>Concluído</option>
@@ -2787,7 +2808,7 @@ function simpleEditorRowHtml(movieId, e){
     : readOnlyValue(e.status === 'concluido' ? 'Concluído' : e.status === 'fazendo' ? 'Fazendo' : 'Pendente');
   return `
     <div class="grid-row grid-body-row">
-      <div class="urg-bar ${e.urgencia}"></div>
+      <div class="urg-bar ${oneOf(e.urgencia, URGENCIAS, 'media')}"></div>
       <div class="cell">
         ${editorName}
       </div>
@@ -2798,8 +2819,8 @@ function simpleEditorRowHtml(movieId, e){
         ${dateInput('entrega', e.entrega)}
       </div>
       <div class="cell">
-        ${canManageWork() ? `<select class="urg-select" data-v="${e.urgencia}"
-          onchange="updateSimpleEditorField('${movieId}','${e.id}','urgencia', this.value)">
+        ${canManageWork() ? `<select class="urg-select" data-v="${oneOf(e.urgencia, URGENCIAS, 'media')}"
+          onchange="updateSimpleEditorField(${jsArg(movieId)},${jsArg(e.id)},'urgencia', this.value)">
           <option value="baixa" ${e.urgencia==='baixa'?'selected':''}>Baixa</option>
           <option value="media" ${e.urgencia==='media'?'selected':''}>Média</option>
           <option value="alta" ${e.urgencia==='alta'?'selected':''}>Alta</option>
@@ -2808,7 +2829,7 @@ function simpleEditorRowHtml(movieId, e){
       <div class="cell">
         ${statusInput}
       </div>
-      ${canDelete() ? `<button class="rm-row-btn" onclick="removeEditorRow('${movieId}','${e.id}')" title="Remover editor">✕</button>` : '<span></span>'}
+      ${canDelete() ? `<button class="rm-row-btn" onclick="removeEditorRow(${jsArg(movieId)},${jsArg(e.id)})" title="Remover editor">✕</button>` : '<span></span>'}
     </div>
   `;
 }

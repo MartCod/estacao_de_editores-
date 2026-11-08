@@ -861,6 +861,8 @@ let currentUser = null;
 let cloudSaveTimer = null;
 let cloudSaveInProgress = false;
 let cloudSavePending = false;
+let cloudDataVersion = 0;
+let cloudSaveVersion = 0;
 let cloudEnabled = false;
 let currentAccess = { role:'editor', editorName:'' };
 let stationUsers = [];
@@ -1232,21 +1234,24 @@ function loadData(){
 }
 
 function saveData(){
+  // Registra que existe uma nova versão dos dados
+  cloudDataVersion++;
+
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-  movies,
-  completedMovies,
-  activeMovieId: activeId,
-  productionMovieId
-}));
+      movies,
+      completedMovies,
+      activeMovieId: activeId,
+      productionMovieId
+    }));
     storageOk = true;
   }catch(e){
     console.error('Falha ao salvar localmente', e);
     storageOk = false;
   }
+
   scheduleCloudSave();
 }
-
 function scheduleCloudSave(){
   if(!cloudEnabled || !supabaseClient || !currentUser) return;
 
@@ -1255,24 +1260,33 @@ function scheduleCloudSave(){
   cloudSaveTimer = setTimeout(async () => {
     cloudSaveTimer = null;
 
-    // Se já existe uma gravação acontecendo,
-    // marca que outra gravação será necessária depois.
+    // Se já existe um salvamento em andamento,
+    // a versão mais recente será salva quando ele terminar.
     if(cloudSaveInProgress){
-      cloudSavePending = true;
       return;
     }
 
     cloudSaveInProgress = true;
 
     try{
-      await saveCloudData();
+      // Continua salvando até que a versão mais recente
+      // dos dados seja confirmada.
+      while(cloudSavedVersion < cloudDataVersion){
+        const versionToSave = cloudDataVersion;
+
+        await saveCloudData();
+
+        // Marca a versão enviada como salva.
+        cloudSavedVersion = versionToSave;
+      }
+    }catch(e){
+      console.error('Erro na fila de salvamento', e);
     }finally{
       cloudSaveInProgress = false;
 
-      // Se houve alguma alteração enquanto a gravação
-      // estava acontecendo, salva novamente depois.
-      if(cloudSavePending){
-        cloudSavePending = false;
+      // Se uma alteração aconteceu exatamente no final,
+      // garante que a fila seja acionada novamente.
+      if(cloudSavedVersion < cloudDataVersion){
         scheduleCloudSave();
       }
     }
@@ -1280,24 +1294,38 @@ function scheduleCloudSave(){
 }
 
 async function saveCloudData(){
-  if(!cloudEnabled || !supabaseClient || !currentUser) return;
+  if(!cloudEnabled || !supabaseClient || !currentUser){
+    throw new Error('Salvamento na nuvem não está disponível.');
+  }
+
+  const payload = {
+    movies,
+    completedMovies,
+    activeMovieId: activeId,
+    productionMovieId,
+    activeDept
+  };
+
   try{
-   const payload = {
-  movies,
-  completedMovies,
-  activeMovieId: activeId,
-  productionMovieId,
-  activeDept
-};
-    const { error } = await supabaseClient.from(CLOUD_TABLE).upsert({
-      id: CLOUD_ROW_ID,
-      payload,
-      updated_at: new Date().toISOString(),
-      updated_by: currentUser.id
-    }, { onConflict: 'id' });
+    const { error } = await supabaseClient
+      .from(CLOUD_TABLE)
+      .upsert({
+        id: CLOUD_ROW_ID,
+        payload,
+        updated_at: new Date().toISOString(),
+        updated_by: currentUser.id
+      }, { onConflict: 'id' });
+
     if(error) throw error;
+
+    // Confirma para a fila que o Supabase recebeu os dados.
+    return true;
+
   }catch(e){
     console.error('Falha ao salvar na nuvem', e);
+
+    // Informa à fila que o salvamento falhou.
+    throw e;
   }
 }
 

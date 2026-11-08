@@ -1044,7 +1044,6 @@ function isAdmin(){ return currentAccess.role === 'admin'; }
 function isChief(){ return currentAccess.role === 'chief'; }
 function canManageWork(){ return isAdmin() || isChief(); }
 function canDelete(){ return isAdmin(); }
-function canManageLanguages(){ return isAdmin() || isChief(); }
 function canCompleteMovie(){ return isAdmin() || isChief(); }
 function canImport(){ return isAdmin(); }
 function canExport(){ return isAdmin() || isChief(); }
@@ -1523,10 +1522,10 @@ function migrateVocalEditorLegacy(e){
     const oldEntrega = e.entrega || '';
     const oldUrg = e.urgencia || 'media';
     const oldStatus = e.status || 'pendente';
-    e.idiomas = e.idiomas.map(l => ({ id: uid(), idioma: l, inicio: oldInicio, entrega: oldEntrega, urgencia: oldUrg, status: oldStatus, revisor:'', statusRevisao:'andamento' }));
+    e.idiomas = e.idiomas.map(l => ({ id: uid(), idioma: l, inicio: oldInicio, entrega: oldEntrega, urgencia: oldUrg, status: oldStatus, revisor:'', statusRevisao:'pendente' }));
   }
   if(!Array.isArray(e.idiomas)) e.idiomas = [];
-  e.idiomas.forEach(r => { if(!r.statusRevisao) r.statusRevisao = 'andamento'; if(r.revisor===undefined) r.revisor=''; });
+  e.idiomas.forEach(r => { if(!r.statusRevisao) r.statusRevisao = 'pendente'; if(r.revisor===undefined) r.revisor=''; });
   delete e.inicio; delete e.entrega; delete e.urgencia; delete e.status;
   return e;
 }

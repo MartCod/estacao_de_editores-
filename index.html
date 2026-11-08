@@ -2264,13 +2264,13 @@ function pathRowHtml(m){
           <span class="audio-path-label">DRIVE</span>
 
           <div class="input-shell">
-            <input
+            ${isAdmin() ? `<input
               type="text"
               id="driveInput-${esc(m.id)}"
               placeholder="Caminho ou link do Drive"
               value="${esc(m.drive || '')}"
               oninput="updateMovieField(${jsArg(m.id)}, 'drive', this.value)"
-            >
+            >` : readOnlyValue(m.drive)}
 
             <button
               class="copy-btn"
@@ -2373,7 +2373,7 @@ function movieLinkHtml(m, link){
 
             <span>${esc(lang.name || '')}</span>
 
-            <button
+            ${isAdmin() ? `<button
               type="button"
               class="remove-language-btn"
               onclick="event.preventDefault(); event.stopPropagation(); removeLinkLanguage(${jsArg(link.id)}, ${jsArg(lang.id)})"
@@ -2389,7 +2389,7 @@ function movieLinkHtml(m, link){
               title="Remover idioma"
             >
               ×
-            </button>
+            </button>` : ''}
           </span>
         `).join('')}
 
@@ -2422,22 +2422,22 @@ function movieLinkHtml(m, link){
 
       <div class="input-shell">
 
-        <input
+        ${isAdmin() ? `<input
           type="text"
           placeholder="Caminho ou link do filme"
           value="${esc(link.url || '')}"
           oninput="updateMovieLinkUrl(${jsArg(link.id)}, this.value)"
-        >
+        >` : readOnlyValue(link.url)}
 
         <button
           class="copy-btn"
           type="button"
-          onclick="copyText(this.previousElementSibling.value, this)"
+          onclick="copyLinkUrl(${jsArg(link.id)}, this)"
         >
           Copiar
         </button>
 
-        <button
+        ${isAdmin() ? `<button
           type="button"
           onclick="removeMovieLink(${jsArg(link.id)})"
           style="
@@ -2455,7 +2455,7 @@ function movieLinkHtml(m, link){
           title="Excluir link"
         >
           ×
-        </button>
+        </button>` : ''}
 
       </div>
 
@@ -2507,6 +2507,7 @@ function addLinkLanguage(linkId, languageId){
 }
 
 function removeLinkLanguage(linkId, languageId){
+  if(!isAdmin()) return;
   const link = store.links.get(linkId);
   if(!link) return;
   const current = Array.isArray(link.languages) ? link.languages : [];
@@ -2515,10 +2516,17 @@ function removeLinkLanguage(linkId, languageId){
 }
 
 function updateMovieLinkUrl(linkId, value){
+  if(!isAdmin()) return;
   patchRow('links', linkId, { url: value }, TEXT_SAVE_DELAY);
 }
 
+function copyLinkUrl(linkId, btn){
+  const link = store.links.get(linkId);
+  copyText(link ? link.url : '', btn);
+}
+
 function removeMovieLink(linkId){
+  if(!isAdmin()) return;
   deleteRow('links', linkId);
   render();
 }

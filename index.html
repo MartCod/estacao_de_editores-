@@ -2663,19 +2663,27 @@ function reviewProgressHtml(m){
 }
 /* ---------- ETAPA VOCAL (por idioma, com revisor) ---------- */
 
-function vocalEditorGroupHtml(movieId, e){
-  const n = e.idiomas.length;
-  const editorName = canManageWork()
-  ? `<select class="editor-name-input"
+// Escolha do editor responsável (Vocal, Efeitos e Música): vincula a tarefa
+// ao usuário, para que o próprio editor consiga atualizar datas e status.
+// Se o nome atual não corresponde a um usuário, ele aparece como opção atual.
+function editorSelectHtml(movieId, e, className){
+  const linked = stationUsers.some(user => user.user_id === e.user_id);
+  return `<select class="${className}"
       onchange="assignEditorUser(${jsArg(movieId)},${jsArg(e.id)}, this.value)">
-      <option value="">Selecionar editor</option>
+      <option value="" ${linked ? '' : 'selected'}>${esc(!linked && e.nome ? e.nome + ' (sem usuário)' : 'Selecionar editor')}</option>
       ${stationUsers.map(user => `
         <option value="${esc(user.user_id)}" ${e.user_id === user.user_id ? 'selected' : ''}>
           ${esc(user.editor_name || 'Sem nome')}
         </option>
       `).join('')}
-    </select>`
-  : `<div class="readonly-value">${esc(e.nome) || 'Sem nome'}</div>`;
+    </select>`;
+}
+
+function vocalEditorGroupHtml(movieId, e){
+  const n = e.idiomas.length;
+  const editorName = canManageWork()
+    ? editorSelectHtml(movieId, e, 'editor-name-input')
+    : `<div class="readonly-value">${esc(e.nome) || 'Sem nome'}</div>`;
 
   let popover = '';
   if(openPickerFor === e.id){
@@ -2793,13 +2801,12 @@ function simpleEditorsTableHtml(movieId, editors){
 
 function simpleEditorRowHtml(movieId, e){
   const editorName = canManageWork()
-    ? `<input type="text" class="editor-name-input inline" placeholder="Nome do editor" value="${esc(e.nome)}"
-        oninput="updateSimpleEditorField(${jsArg(movieId)},${jsArg(e.id)},'nome', this.value)">`
+    ? editorSelectHtml(movieId, e, 'editor-name-input inline')
     : readOnlyValue(e.nome);
   const dateInput = (field, value) => canEditTask(e, field)
     ? `<input type="date" value="${esc(value)}" onchange="updateSimpleEditorField(${jsArg(movieId)},${jsArg(e.id)},${jsArg(field)}, this.value)">`
     : readOnlyValue(value);
-  const statusInput = canEditTask(e.nome, 'status')
+  const statusInput = canEditTask(e, 'status')
     ? `<select class="status-select" data-v="${oneOf(e.status, STATUS, 'pendente')}" onchange="updateSimpleEditorField(${jsArg(movieId)},${jsArg(e.id)},'status', this.value)">
         <option value="pendente" ${e.status==='pendente'?'selected':''}>Pendente</option>
         <option value="fazendo" ${e.status==='fazendo'?'selected':''}>Fazendo</option>

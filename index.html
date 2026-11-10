@@ -904,6 +904,7 @@ let cloudSaveInProgress = false;
 let cloudSavePending = false;
 let cloudDataVersion = 0;
 let cloudSavedVersion = 0;
+let cloudRemoteVersion = 0;
 let cloudEnabled = false;
 let currentAccess = { role:'editor', editorName:'' };
 let stationUsers = [];
@@ -1017,11 +1018,11 @@ function readOnlyValue(value, className=''){
 async function loadAccess(user){
   currentAccess = { role:'editor', editorName:'' };
   if(!cloudEnabled || !supabaseClient || !user) return;
-  const { data, error } = await supabaseClient
-    .from('station_user_access')
-    .select('role, editor_name')
-    .eq('user_id', user.id)
-    .maybeSingle();
+ const { data, error } = await supabaseClient
+  .from(CLOUD_TABLE)
+  .select('payload, version')
+  .eq('id', CLOUD_ROW_ID)
+  .maybeSingle();
   if(error){ console.error('Falha ao carregar perfil de acesso', error); return; }
   if(data) currentAccess = { role:data.role || 'editor', editorName:data.editor_name || '' };
 }
@@ -1365,24 +1366,31 @@ async function saveCloudData(){
   };
 
   try{
-    const { error } = await supabaseClient
-      .from(CLOUD_TABLE)
-      .upsert({
-        id: CLOUD_ROW_ID,
-        payload,
-        updated_at: new Date().toISOString(),
-        updated_by: currentUser.id
-      }, { onConflict: 'id' });
+    // Envia os dados junto com a versão que o usuário carregou.
+    const { data, error } = await supabaseClient.rpc('save_shared_data', {
+      expected_version: cloudRemoteVersion,
+      new_payload: payload,
+      user_id: currentUser.id
+    });
 
     if(error) throw error;
 
-    // Confirma para a fila que o Supabase recebeu os dados.
+    // A nova versão retornada pelo Supabase passa a ser
+    // a versão conhecida por este usuário.
+    cloudRemoteVersion = Number(data);
+
     return true;
 
   }catch(e){
     console.error('Falha ao salvar na nuvem', e);
 
-    // Informa à fila que o salvamento falhou.
+    // Identifica especificamente um conflito entre usuários.
+    if(String(e.message || e).includes('CONFLICT')){
+      throw new Error(
+        'CONFLITO: outra pessoa alterou os dados antes do seu salvamento.'
+      );
+    }
+
     throw e;
   }
 }
@@ -1395,6 +1403,7 @@ async function loadCloudData(){
   return null;
 }
   if(data && data.payload){
+    cloudRemoteVersion = Number(data.version) || 0;
     const payload = data.payload;
     movies = Array.isArray(payload.movies) ? payload.movies : [];
     completedMovies = Array.isArray(payload.completedMovies) ? payload.completedMovies : [];

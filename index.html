@@ -1397,7 +1397,11 @@ async function saveCloudData(){
 
 async function loadCloudData(){
   if(!cloudEnabled || !supabaseClient || !currentUser) return false;
-  const { data, error } = await supabaseClient.from(CLOUD_TABLE).select('payload').eq('id', CLOUD_ROW_ID).maybeSingle();
+  const { data, error } = await supabaseClient
+  .from(CLOUD_TABLE)
+  .select('payload, version')
+  .eq('id', CLOUD_ROW_ID)
+  .maybeSingle();
  if(error){
   console.error('Falha ao carregar dados da nuvem', error);
   return null;
